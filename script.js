@@ -136,7 +136,7 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
         submitBtn.style.opacity = '1';
         
         // Optional: Send email using a service like EmailJS, Formspree, or Netlify Forms
-        // sendEmailNotification(name, email, therapy, message);
+        sendEmailNotification(name, email, therapy, message);
         
     }, 2000);
 });
@@ -158,6 +158,19 @@ function showMessage(text, type) {
 
 // Optional: Function to send email notification (requires email service setup)
 function sendEmailNotification(name, email, therapy, message) {
+    emailjs.init("m4srsWKr-0feuYu9N");
+
+    emailjs.send("service_1u51w01", "service_1u51w01", {
+        from_name: name,
+        from_email: email,
+        therapy_interest: therapy,
+        message: message,
+        to_email: "therapieswellness@gmail.com"
+    }).then(function (response) {
+        console.log('SUCCESS!', response.status, response.text);
+    }, function (error) {
+        console.log('FAILED...', error);
+    });
     // Example using EmailJS (you would need to set up an account and get API keys)
     // emailjs.send('your_service_id', 'your_template_id', {
     //     from_name: name,
