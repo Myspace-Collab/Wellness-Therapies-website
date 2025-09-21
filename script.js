@@ -62,37 +62,125 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Form submission
-document.querySelector('.contact-form').addEventListener('submit', function(e) {
+// Form submission with improved validation and feedback
+document.getElementById('contactForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    // Get form data
+    // Get form elements
     const formData = new FormData(this);
-    const name = this.querySelector('input[type="text"]').value;
-    const email = this.querySelector('input[type="email"]').value;
-    const therapy = this.querySelector('select').value;
-    const message = this.querySelector('textarea').value;
+    const name = this.querySelector('input[name="name"]').value.trim();
+    const email = this.querySelector('input[name="email"]').value.trim();
+    const therapy = this.querySelector('select[name="therapy"]').value;
+    const message = this.querySelector('textarea[name="message"]').value.trim();
+    const submitBtn = this.querySelector('.submit-btn');
+    const formMessage = document.getElementById('formMessage');
     
-    // Simple validation
+    // Clear previous messages
+    formMessage.textContent = '';
+    formMessage.className = 'form-message';
+    
+    // Enhanced validation
     if (!name || !email || !therapy || !message) {
-        alert('Please fill in all fields.');
+        showMessage('Please fill in all fields.', 'error');
         return;
     }
     
-    // Simulate form submission
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.textContent;
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('Please enter a valid email address.', 'error');
+        return;
+    }
     
+    // Name validation (at least 2 characters)
+    if (name.length < 2) {
+        showMessage('Please enter a valid name (at least 2 characters).', 'error');
+        return;
+    }
+    
+    // Message validation (at least 10 characters)
+    if (message.length < 10) {
+        showMessage('Please enter a more detailed message (at least 10 characters).', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Sending...';
     submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
     
+    // Simulate form submission (replace with actual email service)
     setTimeout(() => {
-        alert('Thank you for your message! We will get back to you soon.');
+        // Here you would typically send the data to your backend or email service
+        // For now, we'll simulate a successful submission
+        
+        // Log form data (in production, this would be sent to your server)
+        console.log('Form submitted with data:', {
+            name: name,
+            email: email,
+            therapy: therapy,
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Show success message
+        showMessage('Thank you for your message! We will get back to you within 24 hours.', 'success');
+        
+        // Reset form
         this.reset();
+        
+        // Reset button
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        
+        // Optional: Send email using a service like EmailJS, Formspree, or Netlify Forms
+        // sendEmailNotification(name, email, therapy, message);
+        
     }, 2000);
 });
+
+// Function to show form messages
+function showMessage(text, type) {
+    const formMessage = document.getElementById('formMessage');
+    formMessage.textContent = text;
+    formMessage.className = `form-message ${type}`;
+    
+    // Auto-hide error messages after 5 seconds
+    if (type === 'error') {
+        setTimeout(() => {
+            formMessage.textContent = '';
+            formMessage.className = 'form-message';
+        }, 5000);
+    }
+}
+
+// Optional: Function to send email notification (requires email service setup)
+function sendEmailNotification(name, email, therapy, message) {
+    // Example using EmailJS (you would need to set up an account and get API keys)
+    // emailjs.send('your_service_id', 'your_template_id', {
+    //     from_name: name,
+    //     from_email: email,
+    //     therapy_interest: therapy,
+    //     message: message,
+    //     to_email: 'therapieswellness@gmail.com'
+    // });
+    
+    // Example using Formspree (you would need to set up an account)
+    // fetch('https://formspree.io/f/YOUR_FORM_ID', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //         name: name,
+    //         email: email,
+    //         therapy: therapy,
+    //         message: message
+    //     })
+    // });
+}
 
 // Intersection Observer for animations
 const observerOptions = {
