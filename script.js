@@ -125,7 +125,9 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
         });
         
         // Send email using EmailJS
+        console.log('About to call sendEmailNotification function...');
         sendEmailNotification(name, email, therapy, message);
+        console.log('sendEmailNotification function called');
         
         // Reset form
         this.reset();
@@ -155,12 +157,38 @@ function showMessage(text, type) {
 
 // Initialize EmailJS when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    emailjs.init("m4srsWKr-0feuYu9N");
+    console.log('EmailJS available:', typeof emailjs !== 'undefined');
+    if (typeof emailjs !== 'undefined') {
+        emailjs.init("m4srsWKr-0feuYu9N");
+        console.log('EmailJS initialized with key: m4srsWKr-0feuYu9N');
+    } else {
+        console.error('EmailJS not loaded! Check if the script tag is correct.');
+    }
 });
 
 // Function to send email notification
 function sendEmailNotification(name, email, therapy, message) {
-    emailjs.send("service_1u51w01", "template_1u51w01", {
+    console.log('Attempting to send email with EmailJS...');
+    console.log('Service ID:', 'service_1u51w01');
+    console.log('Template ID:', 'template_njoz2qu');
+    
+    // Check if emailjs is available
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS is not loaded!');
+        showMessage('Email service not available. Please try again later.', 'error');
+        return;
+    }
+    
+    // Check if emailjs is initialized
+    if (!emailjs.init) {
+        console.error('EmailJS is not properly initialized!');
+        showMessage('Email service not properly initialized. Please refresh the page.', 'error');
+        return;
+    }
+    
+    console.log('EmailJS is available and ready to send...');
+    
+    emailjs.send("service_1u51w01", "template_njoz2qu", {
         from_name: name,
         from_email: email,
         therapy_interest: therapy,
@@ -171,6 +199,7 @@ function sendEmailNotification(name, email, therapy, message) {
         showMessage('Email sent successfully! We will get back to you soon.', 'success');
     }, function (error) {
         console.log('FAILED...', error);
+        console.log('Error details:', error);
         showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
     });
     // Example using EmailJS (you would need to set up an account and get API keys)
