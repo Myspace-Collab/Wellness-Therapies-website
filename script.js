@@ -188,15 +188,16 @@ function sendEmailNotification(name, email, therapy, message) {
     
     console.log('EmailJS is available and ready to send...');
     
+    // Send auto-reply to customer using template_zj4pg7k
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
-        from_name: name,
-        from_email: email,
+        customer_name: name,
+        customer_email: email,
         therapy_interest: therapy,
         message: message,
-        to_email: "therapieswellness@gmail.com"
+        to_email: email
     }).then(function (response) {
-        console.log('SUCCESS!', response.status, response.text);
-        showMessage('Email sent successfully! We will get back to you soon.', 'success');
+        console.log('Auto-reply sent successfully!', response.status, response.text);
+        showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
     }, function (error) {
         console.log('FAILED...', error);
         console.log('Error details:', error);
