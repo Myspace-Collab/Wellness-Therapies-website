@@ -170,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function sendEmailNotification(name, email, therapy, message) {
     console.log('Attempting to send email with EmailJS...');
     console.log('Service ID:', 'service_1u51w01');
-    console.log('Template ID:', 'template_njoz2qu');
+    console.log('Template ID:', 'template_zj4pg7k');
     
     // Check if emailjs is available
     if (typeof emailjs === 'undefined') {
@@ -188,7 +188,7 @@ function sendEmailNotification(name, email, therapy, message) {
     
     console.log('EmailJS is available and ready to send...');
     
-    emailjs.send("service_1u51w01", "template_njoz2qu", {
+    emailjs.send("service_1u51w01", "template_zj4pg7k", {
         from_name: name,
         from_email: email,
         therapy_interest: therapy,
