@@ -124,8 +124,8 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
             timestamp: new Date().toISOString()
         });
         
-        // Show success message
-        showMessage('Thank you for your message! We will get back to you within 24 hours.', 'success');
+        // Send email using EmailJS
+        sendEmailNotification(name, email, therapy, message);
         
         // Reset form
         this.reset();
@@ -134,9 +134,6 @@ document.getElementById('contactForm').addEventListener('submit', function(e) {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
-        
-        // Optional: Send email using a service like EmailJS, Formspree, or Netlify Forms
-        sendEmailNotification(name, email, therapy, message);
         
     }, 2000);
 });
@@ -156,11 +153,14 @@ function showMessage(text, type) {
     }
 }
 
-// Optional: Function to send email notification (requires email service setup)
-function sendEmailNotification(name, email, therapy, message) {
+// Initialize EmailJS when page loads
+document.addEventListener('DOMContentLoaded', function() {
     emailjs.init("m4srsWKr-0feuYu9N");
+});
 
-    emailjs.send("service_1u51w01", "service_1u51w01", {
+// Function to send email notification
+function sendEmailNotification(name, email, therapy, message) {
+    emailjs.send("service_1u51w01", "template_1u51w01", {
         from_name: name,
         from_email: email,
         therapy_interest: therapy,
@@ -168,8 +168,10 @@ function sendEmailNotification(name, email, therapy, message) {
         to_email: "therapieswellness@gmail.com"
     }).then(function (response) {
         console.log('SUCCESS!', response.status, response.text);
+        showMessage('Email sent successfully! We will get back to you soon.', 'success');
     }, function (error) {
         console.log('FAILED...', error);
+        showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
     });
     // Example using EmailJS (you would need to set up an account and get API keys)
     // emailjs.send('your_service_id', 'your_template_id', {
