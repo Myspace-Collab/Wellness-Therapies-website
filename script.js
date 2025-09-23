@@ -62,37 +62,193 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Form submission
-document.querySelector('.contact-form').addEventListener('submit', function(e) {
+// Form submission with improved validation and feedback
+document.getElementById('contactForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
-    // Get form data
+    // Get form elements
     const formData = new FormData(this);
-    const name = this.querySelector('input[type="text"]').value;
-    const email = this.querySelector('input[type="email"]').value;
-    const therapy = this.querySelector('select').value;
-    const message = this.querySelector('textarea').value;
+    const name = this.querySelector('input[name="name"]').value.trim();
+    const email = this.querySelector('input[name="email"]').value.trim();
+    const therapy = this.querySelector('select[name="therapy"]').value;
+    const message = this.querySelector('textarea[name="message"]').value.trim();
+    const submitBtn = this.querySelector('.submit-btn');
+    const formMessage = document.getElementById('formMessage');
     
-    // Simple validation
+    // Clear previous messages
+    formMessage.textContent = '';
+    formMessage.className = 'form-message';
+    
+    // Enhanced validation
     if (!name || !email || !therapy || !message) {
-        alert('Please fill in all fields.');
+        showMessage('Please fill in all fields.', 'error');
         return;
     }
     
-    // Simulate form submission
-    const submitBtn = this.querySelector('.submit-btn');
-    const originalText = submitBtn.textContent;
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showMessage('Please enter a valid email address.', 'error');
+        return;
+    }
     
+    // Name validation (at least 2 characters)
+    if (name.length < 2) {
+        showMessage('Please enter a valid name (at least 2 characters).', 'error');
+        return;
+    }
+    
+    // Message validation (at least 10 characters)
+    if (message.length < 10) {
+        showMessage('Please enter a more detailed message (at least 10 characters).', 'error');
+        return;
+    }
+    
+    // Show loading state
+    const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Sending...';
     submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
     
+    // Simulate form submission (replace with actual email service)
     setTimeout(() => {
-        alert('Thank you for your message! We will get back to you soon.');
+        // Here you would typically send the data to your backend or email service
+        // For now, we'll simulate a successful submission
+        
+        // Log form data (in production, this would be sent to your server)
+        console.log('Form submitted with data:', {
+            name: name,
+            email: email,
+            therapy: therapy,
+            message: message,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Send email using EmailJS
+        console.log('About to call sendEmailNotification function...');
+        sendEmailNotification(name, email, therapy, message);
+        console.log('sendEmailNotification function called');
+        
+        // Reset form
         this.reset();
+        
+        // Reset button
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        
     }, 2000);
 });
+
+// Function to show form messages
+function showMessage(text, type) {
+    const formMessage = document.getElementById('formMessage');
+    formMessage.textContent = text;
+    formMessage.className = `form-message ${type}`;
+    
+    // Auto-hide error messages after 5 seconds
+    if (type === 'error') {
+        setTimeout(() => {
+            formMessage.textContent = '';
+            formMessage.className = 'form-message';
+        }, 5000);
+    }
+}
+
+// Initialize EmailJS when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('EmailJS available:', typeof emailjs !== 'undefined');
+    if (typeof emailjs !== 'undefined') {
+        emailjs.init("m4srsWKr-0feuYu9N");
+        console.log('EmailJS initialized with key: m4srsWKr-0feuYu9N');
+    } else {
+        console.error('EmailJS not loaded! Check if the script tag is correct.');
+    }
+});
+
+// Function to send email notification
+function sendEmailNotification(name, email, therapy, message) {
+    console.log('Attempting to send email with EmailJS...');
+    console.log('Service ID:', 'service_1u51w01');
+    console.log('Template ID:', 'template_zj4pg7k');
+    
+    // Check if emailjs is available
+    if (typeof emailjs === 'undefined') {
+        console.error('EmailJS is not loaded!');
+        showMessage('Email service not available. Please try again later.', 'error');
+        return;
+    }
+    
+    // Check if emailjs is initialized
+    if (!emailjs.init) {
+        console.error('EmailJS is not properly initialized!');
+        showMessage('Email service not properly initialized. Please refresh the page.', 'error');
+        return;
+    }
+    
+    console.log('EmailJS is available and ready to send...');
+    
+    // Send auto-reply to customer using template_zj4pg7k
+    emailjs.send("service_1u51w01", "template_zj4pg7k", {
+        from_name: "Wellness Therapies",
+        from_email: "therapieswellness@gmail.com",
+        to_name: name,
+        to_email: email,
+        customer_name: name,
+        customer_email: email,
+        therapy_interest: therapy,
+        message: message,
+        reply_to: "therapieswellness@gmail.com"
+    }).then(function (response) {
+        console.log('Auto-reply sent successfully!', response.status, response.text);
+        
+        // Send notification email to you with customer details
+        emailjs.send("service_1u51w01", "template_zj4pg7k", {
+            from_name: name,
+            from_email: email,
+            to_name: "Wellness Therapies",
+            to_email: "therapieswellness@gmail.com",
+            name: name,
+            email: email,
+            therapy: therapy,
+            message: message,
+            reply_to: email
+        }).then(function (response) {
+            console.log('Notification email sent successfully!', response.status, response.text);
+            showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
+        }, function (error) {
+            console.log('Notification failed, but auto-reply sent:', error);
+            showMessage('Thank you for your message! We will get back to you soon.', 'success');
+        });
+        
+    }, function (error) {
+        console.log('FAILED...', error);
+        console.log('Error details:', error);
+        showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
+    });
+    // Example using EmailJS (you would need to set up an account and get API keys)
+    // emailjs.send('your_service_id', 'your_template_id', {
+    //     from_name: name,
+    //     from_email: email,
+    //     therapy_interest: therapy,
+    //     message: message,
+    //     to_email: 'therapieswellness@gmail.com'
+    // });
+    
+    // Example using Formspree (you would need to set up an account)
+    // fetch('https://formspree.io/f/YOUR_FORM_ID', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //         name: name,
+    //         email: email,
+    //         therapy: therapy,
+    //         message: message
+    //     })
+    // });
+}
 
 // Intersection Observer for animations
 const observerOptions = {
