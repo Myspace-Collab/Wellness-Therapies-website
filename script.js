@@ -211,7 +211,7 @@ function sendEmailNotification(name, email, therapy, message) {
             name: name,
             email: email,
             therapy: therapy,
-            message: message,
+            message: "NEW CONTACT FORM MESSAGE:\n\nName: " + name + "\nEmail: " + email + "\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply directly to: " + email,
             reply_to: email
         }).then(function (response) {
             console.log('Notification email sent successfully!', response.status, response.text);
