@@ -190,14 +190,37 @@ function sendEmailNotification(name, email, therapy, message) {
     
     // Send auto-reply to customer using template_zj4pg7k
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
-        customer_name: name,
-        customer_email: email,
-        therapy_interest: therapy,
+        from_name: "Wellness Therapies",
+        from_email: "therapieswellness@gmail.com",
+        to_name: name,
+        to_email: email,
+        name: name,
+        email: email,
+        therapy: therapy,
         message: message,
-        to_email: email
+        reply_to: "therapieswellness@gmail.com"
     }).then(function (response) {
         console.log('Auto-reply sent successfully!', response.status, response.text);
-        showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
+        
+        // Send notification email to you with customer details
+        emailjs.send("service_1u51w01", "template_zj4pg7k", {
+            from_name: name,
+            from_email: email,
+            to_name: "Wellness Therapies",
+            to_email: "therapieswellness@gmail.com",
+            name: name,
+            email: email,
+            therapy: therapy,
+            message: "NEW CONTACT FORM MESSAGE:\n\nName: " + name + "\nEmail: " + email + "\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply directly to: " + email,
+            reply_to: email
+        }).then(function (response) {
+            console.log('Notification email sent successfully!', response.status, response.text);
+            showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
+        }, function (error) {
+            console.log('Notification failed, but auto-reply sent:', error);
+            showMessage('Thank you for your message! We will get back to you soon.', 'success');
+        });
+        
     }, function (error) {
         console.log('FAILED...', error);
         console.log('Error details:', error);
