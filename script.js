@@ -188,31 +188,48 @@ function sendEmailNotification(name, email, therapy, message) {
     
     console.log('EmailJS is available and ready to send...');
     
-    // Send notification to wellness therapies ONLY
+    // Send auto-reply to customer first
     console.log('=== EMAIL SEND DEBUG ===');
-    console.log('Sending notification to wellness therapies');
-    console.log('From:', name, '(' + email + ')');
-    console.log('Template ID:', "template_zj4pg7k");
-    console.log('Service ID:', "service_1u51w01");
+    console.log('Sending auto-reply to customer:', email);
     
-    emailjs.send("service_1u51w01", "template_zj4pg7k", {
-        from_name: name,
-        from_email: email,
-        to_name: "Wellness Therapies",
-        to_email: "therapieswellness@gmail.com",
+    emailjs.send("service_1u51w01", "template_xz10eyk", {
+        from_name: "Wellness Therapies",
+        from_email: "therapieswellness@gmail.com",
+        to_name: name,
+        to_email: email,
         name: name,
         email: email,
         therapy: therapy,
         message: message,
-        title: "New Contact Form Submission",
-        reply_to: email
+        reply_to: "therapieswellness@gmail.com"
     }).then(function (response) {
-        console.log('✅ Notification sent successfully!');
+        console.log('✅ Auto-reply sent successfully to customer!');
         console.log('Response status:', response.status);
-        console.log('Response text:', response.text);
-        showMessage('Thank you for your message! We will get back to you soon.', 'success');
+        
+        // Send notification to wellness therapies
+        console.log('Sending notification to wellness therapies');
+        emailjs.send("service_1u51w01", "template_zj4pg7k", {
+            from_name: name,
+            from_email: email,
+            to_name: "Wellness Therapies",
+            to_email: "therapieswellness@gmail.com",
+            name: name,
+            email: email,
+            therapy: therapy,
+            message: message,
+            title: "New Contact Form Submission",
+            reply_to: email
+        }).then(function (response) {
+            console.log('✅ Notification sent successfully to wellness therapies!');
+            console.log('Response status:', response.status);
+            showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
+        }, function (error) {
+            console.log('❌ Notification failed:', error);
+            showMessage('Thank you for your message! We will get back to you soon.', 'success');
+        });
+        
     }, function (error) {
-        console.log('❌ FAILED...', error);
+        console.log('❌ Auto-reply FAILED...', error);
         console.log('Error details:', error);
         showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
     });
