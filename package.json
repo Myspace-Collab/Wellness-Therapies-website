@@ -1,0 +1,14 @@
+{
+  "name": "wellness-therapies-website",
+  "version": "1.0.0",
+  "description": "Wellness Therapies Website",
+  "scripts": {
+    "build": "echo 'No build needed - static site'",
+    "watch": "node watch-files.js",
+    "push": "powershell -ExecutionPolicy Bypass -File auto-push.ps1"
+  },
+  "devDependencies": {
+    "chokidar": "^3.5.3"
+  }
+}
+
