@@ -189,8 +189,11 @@ function sendEmailNotification(name, email, therapy, message) {
     
     console.log('EmailJS is available and ready to send...');
     
-    // Send auto-reply to customer using template_zj4pg7k
-    emailjs.send("service_1u51w01", "template_zj4pg7k", {
+    // Send auto-reply to customer first
+    console.log('=== EMAIL SEND DEBUG ===');
+    console.log('Sending auto-reply to customer:', email);
+    
+    emailjs.send("service_1u51w01", "template_xz10eyk", {
         from_name: "Wellness Therapies",
         from_email: "therapieswellness@gmail.com",
         to_name: name,
@@ -201,9 +204,11 @@ function sendEmailNotification(name, email, therapy, message) {
         message: message,
         reply_to: "therapieswellness@gmail.com"
     }).then(function (response) {
-        console.log('Auto-reply sent successfully!', response.status, response.text);
+        console.log('✅ Auto-reply sent successfully to customer!');
+        console.log('Response status:', response.status);
         
-        // Send notification email to you with customer details
+        // Send notification to wellness therapies
+        console.log('Sending notification to wellness therapies');
         emailjs.send("service_1u51w01", "template_zj4pg7k", {
             from_name: name,
             from_email: email,
@@ -212,18 +217,20 @@ function sendEmailNotification(name, email, therapy, message) {
             name: name,
             email: email,
             therapy: therapy,
-            message: "NEW CONTACT FORM MESSAGE:\n\nFrom: " + name + " (" + email + ")\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply directly to: " + email,
+            message: message,
+            title: "New Contact Form Submission",
             reply_to: email
         }).then(function (response) {
-            console.log('Notification email sent successfully!', response.status, response.text);
+            console.log('✅ Notification sent successfully to wellness therapies!');
+            console.log('Response status:', response.status);
             showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
         }, function (error) {
-            console.log('Notification failed, but auto-reply sent:', error);
+            console.log('❌ Notification failed:', error);
             showMessage('Thank you for your message! We will get back to you soon.', 'success');
         });
         
     }, function (error) {
-        console.log('FAILED...', error);
+        console.log('❌ Auto-reply FAILED...', error);
         console.log('Error details:', error);
         showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
     });
