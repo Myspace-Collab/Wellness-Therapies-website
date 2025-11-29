@@ -640,23 +640,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingTimeSelect = document.getElementById('bookingTime');
     
     if (bookingDateInput) {
-        // Set minimum date to tomorrow (not today, since we don't allow same-day bookings)
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowString = tomorrow.toISOString().split('T')[0];
-        bookingDateInput.setAttribute('min', tomorrowString);
-        
-        // Function to get next weekday
-        function getNextWeekday(date) {
-            const d = new Date(date);
-            const day = d.getDay();
-            const diff = d.getDate() + (day === 0 ? 1 : day === 6 ? 2 : 0);
-            return new Date(d.setDate(diff));
+        // Function to get next available weekday (Monday-Friday)
+        function getNextAvailableWeekday() {
+            const today = new Date();
+            let nextDate = new Date(today);
+            nextDate.setDate(today.getDate() + 1); // Start from tomorrow
+            
+            // Find next weekday (Monday = 1, Friday = 5)
+            while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+                nextDate.setDate(nextDate.getDate() + 1);
+            }
+            
+            return nextDate;
         }
+        
+        // Set minimum date to next available weekday
+        const minDate = getNextAvailableWeekday();
+        const minDateString = minDate.toISOString().split('T')[0];
+        bookingDateInput.setAttribute('min', minDateString);
+        
+        // Also set max date to prevent selecting dates too far in the future (optional - 3 months ahead)
+        const maxDate = new Date();
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        bookingDateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+        
+        // Disable past dates by preventing manual entry
+        bookingDateInput.addEventListener('keydown', function(e) {
+            // Prevent typing in the date field (force calendar picker only)
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+            }
+        });
+        
+        // Prevent paste of invalid dates
+        bookingDateInput.addEventListener('paste', function(e) {
+            e.preventDefault();
+        });
         
         // Function to validate date
         function validateDate(input) {
-            if (!input.value) return; // Skip if empty
+            if (!input.value) {
+                // Clear time selection if date is cleared
+                if (bookingTimeSelect) {
+                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+                }
+                return false; // Skip if empty
+            }
             
             const selectedDate = new Date(input.value + 'T00:00:00');
             const today = new Date();
@@ -664,10 +693,16 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedDate.setHours(0, 0, 0, 0);
             const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
             
-            // Check if date is today or in the past (STRICT - no today allowed)
-            if (selectedDate <= today) {
-                showBookingMessage('Please select a future date. Past dates and today are not allowed.', 'error');
+            // Get minimum allowed date (next available weekday)
+            const minAllowedDate = getNextAvailableWeekday();
+            minAllowedDate.setHours(0, 0, 0, 0);
+            
+            // Check if date is today, in the past, or before minimum allowed date
+            if (selectedDate < minAllowedDate) {
+                showBookingMessage('Please select a future weekday. Past dates and today are not allowed.', 'error');
                 input.value = '';
+                // Reset to minimum date
+                input.setAttribute('min', minDateString);
                 if (bookingTimeSelect) {
                     bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
                 }
@@ -701,21 +736,53 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Validate on change (when user selects from calendar)
         bookingDateInput.addEventListener('change', function() {
-            validateDate(this);
+            const isValid = validateDate(this);
+            if (!isValid && this.value) {
+                // If invalid, reset to minimum date
+                this.value = minDateString;
+            }
         });
         
         // Also validate on input (when user manually types date)
         bookingDateInput.addEventListener('input', function() {
             if (this.value) {
-                validateDate(this);
+                const isValid = validateDate(this);
+                if (!isValid) {
+                    // Force reset to minimum date if invalid
+                    setTimeout(() => {
+                        const selectedDate = new Date(this.value + 'T00:00:00');
+                        const minAllowed = getNextAvailableWeekday();
+                        minAllowed.setHours(0, 0, 0, 0);
+                        if (!this.value || selectedDate < minAllowed) {
+                            this.value = minDateString;
+                        }
+                    }, 0);
+                }
             }
         });
         
         // Validate on blur (when user leaves the field)
         bookingDateInput.addEventListener('blur', function() {
             if (this.value) {
-                validateDate(this);
+                const isValid = validateDate(this);
+                if (!isValid) {
+                    // Reset to minimum date if invalid
+                    this.value = minDateString;
+                }
             }
+        });
+        
+        // Additional validation: check on every interaction
+        bookingDateInput.addEventListener('invalid', function(e) {
+            e.preventDefault();
+            showBookingMessage('Please select a valid future weekday.', 'error');
+            this.value = minDateString;
+        });
+        
+        // Prevent selection of disabled dates by intercepting clicks
+        bookingDateInput.addEventListener('click', function() {
+            // Ensure min attribute is always set
+            this.setAttribute('min', minDateString);
         });
         
         // Filter out past times if today is selected
@@ -902,8 +969,13 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Check if EmailJS is available and initialized
+    console.log('=== CHECKING EMAILJS STATUS ===');
+    console.log('EmailJS library available:', typeof emailjs !== 'undefined');
+    console.log('EmailJS initialized:', window.EMAILJS_INITIALIZED);
+    console.log('EmailJS public key:', window.EMAILJS_PUBLIC_KEY ? 'Present' : 'Missing');
+    
     if (typeof emailjs === 'undefined') {
-        console.error('EmailJS is not loaded!');
+        console.error('❌ EmailJS library not loaded!');
         showBookingMessage('Email service not available. Please refresh the page and try again.', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -911,14 +983,32 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return;
     }
     
-    // Verify EmailJS is initialized
-    if (!emailjs.init) {
-        console.error('EmailJS is not properly initialized!');
-        showBookingMessage('Email service not properly initialized. Please refresh the page.', 'error');
+    // Check if EmailJS is initialized
+    const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
+    if (!emailjsKey || emailjsKey === 'YOUR_EMAILJS_PUBLIC_KEY_HERE' || !window.EMAILJS_INITIALIZED) {
+        console.error('❌ EmailJS not properly initialized!');
+        console.error('Public Key:', emailjsKey || 'MISSING');
+        showBookingMessage('Email service not properly configured. Please check your config.js file.', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
         return;
+    }
+    
+    // Try to initialize if not already done
+    if (!window.EMAILJS_INITIALIZED) {
+        try {
+            emailjs.init(emailjsKey);
+            window.EMAILJS_INITIALIZED = true;
+            console.log('✅ EmailJS initialized on the fly');
+        } catch (error) {
+            console.error('❌ Failed to initialize EmailJS:', error);
+            showBookingMessage('Email service initialization failed. Please refresh the page.', 'error');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            return;
+        }
     }
     
     // Send booking request via EmailJS (using same template as contact form)
@@ -945,11 +1035,13 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         type: "booking",
         reply_to: email
     }).then(async function (response) {
-        console.log('✅ Booking notification sent successfully!', response.status);
-        console.log('Response:', response);
+        console.log('✅ Booking notification sent successfully!');
+        console.log('Response status:', response.status);
+        console.log('Response text:', response.text);
+        console.log('Full response:', response);
         
         // Show success message immediately after notification email is sent
-        showBookingMessage('✅ Appointment booked successfully! We have received your booking request and will send you a confirmation email shortly.', 'success');
+        showBookingMessage('✅ Thanks for your booking! We have received your appointment request and will send you a confirmation email shortly.', 'success');
         
         // Reset button state
         submitBtn.textContent = originalText;
@@ -994,21 +1086,35 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         }).then(function (response) {
             console.log('✅ Confirmation email sent to customer!', response.status);
             // Update message to indicate confirmation email was sent
-            showBookingMessage('✅ Appointment booked successfully! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your booking.', 'success');
+            showBookingMessage('✅ Thanks for your booking! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your appointment.', 'success');
         }, function (error) {
             console.log('⚠️ Confirmation email failed, but booking notification sent:', error);
             console.error('Confirmation email error details:', error);
             // Keep the success message since the booking notification was sent
-            showBookingMessage('✅ Appointment booked successfully! We have received your booking request. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
+            showBookingMessage('✅ Thanks for your booking! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
         });
         
         // Reset form after successful booking
         document.getElementById('bookingForm').reset();
         
     }, function (error) {
-        console.log('❌ Booking request FAILED...', error);
-        console.error('Error details:', error);
-        showBookingMessage('Sorry, there was an error submitting your booking request. Error: ' + (error.text || error.message || 'Unknown error') + '. Please try again or contact us directly.', 'error');
+        console.error('❌ Booking request FAILED...');
+        console.error('Error object:', error);
+        console.error('Error status:', error.status);
+        console.error('Error text:', error.text);
+        console.error('Error message:', error.message);
+        
+        let errorMessage = 'Sorry, there was an error submitting your booking request. ';
+        if (error.text) {
+            errorMessage += 'Error: ' + error.text;
+        } else if (error.message) {
+            errorMessage += 'Error: ' + error.message;
+        } else {
+            errorMessage += 'Please check your EmailJS configuration and try again.';
+        }
+        errorMessage += ' If the problem persists, please contact us directly.';
+        
+        showBookingMessage(errorMessage, 'error');
         
         // Reset button
         submitBtn.textContent = originalText;
