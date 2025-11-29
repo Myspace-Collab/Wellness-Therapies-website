@@ -623,16 +623,35 @@ function sendEmailNotification(name, email, therapy, message) {
 
 // Booking Form Functionality
 document.addEventListener('DOMContentLoaded', function() {
-    // Set minimum date to today
+    // Set minimum date to today and restrict to weekdays only
     const bookingDateInput = document.getElementById('bookingDate');
     if (bookingDateInput) {
         const today = new Date().toISOString().split('T')[0];
         bookingDateInput.setAttribute('min', today);
+        
+        // Restrict to weekdays only (Monday-Friday)
+        bookingDateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Appointments are only available Monday through Friday. Please select a weekday.');
+                this.value = '';
+                // Reset time slot dropdown
+                const timeSelect = document.getElementById('bookingTime');
+                if (timeSelect) {
+                    timeSelect.innerHTML = '<option value="">Select Time</option>';
+                }
+            } else {
+                // Update available time slots based on existing appointments
+                updateAvailableTimeSlots(this.value);
+            }
+        });
     }
 });
 
 // Booking form submission
-document.getElementById('bookingForm').addEventListener('submit', function(e) {
+document.getElementById('bookingForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
     // Get form data
@@ -672,6 +691,45 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
         return;
     }
     
+    // Validate weekday (Monday-Friday only)
+    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+        showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
+        return;
+    }
+    
+    // Validate time is within business hours (9:00 AM - 3:30 PM)
+    const timeValue = time.split(':');
+    const hours = parseInt(timeValue[0]);
+    const minutes = parseInt(timeValue[1]);
+    const totalMinutes = hours * 60 + minutes;
+    const minMinutes = 9 * 60; // 9:00 AM
+    const maxMinutes = 15 * 60 + 30; // 3:30 PM
+    
+    if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+        showBookingMessage('Appointments are only available between 9:00 AM and 3:30 PM.', 'error');
+        return;
+    }
+    
+    // Check if time slot is already booked (local storage)
+    if (!checkAppointmentAvailability(date, time)) {
+        showBookingMessage('This time slot is already booked. Please select another time.', 'error');
+        return;
+    }
+    
+    // Check Google Calendar availability (if API key is set)
+    if (typeof checkAvailability === 'function' && window.API_KEY && window.API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY') {
+        showBookingMessage('Checking calendar availability...', 'success');
+        const isAvailable = await checkAvailability(date, time);
+        if (!isAvailable) {
+            showBookingMessage('This time slot is already booked in the calendar. Please select another time.', 'error');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            return;
+        }
+    }
+    
     // Show loading state
     const originalText = submitBtn.textContent;
     submitBtn.textContent = 'Booking...';
@@ -690,6 +748,25 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
     const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
     const formattedTime = new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', timeOptions);
     
+    // Add appointment to register
+    const appointmentResult = appointmentRegister.addAppointment({
+        name: name,
+        email: email,
+        phone: phone,
+        therapy: therapy,
+        date: date,
+        time: time,
+        message: message
+    });
+    
+    if (!appointmentResult.success) {
+        showBookingMessage(appointmentResult.error, 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        return;
+    }
+    
     // Send booking request via EmailJS
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
         from_name: name,
@@ -707,6 +784,25 @@ document.getElementById('bookingForm').addEventListener('submit', function(e) {
         reply_to: email
     }).then(function (response) {
         console.log('✅ Booking request sent successfully!', response.status);
+        
+        // Create calendar event (if Google Calendar is set up)
+        if (typeof createCalendarEvent === 'function' && window.API_KEY && window.API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY') {
+            const calendarResult = await createCalendarEvent({
+                name: name,
+                email: email,
+                phone: phone,
+                therapy: therapy,
+                date: date,
+                time: time,
+                message: message
+            });
+            
+            if (calendarResult.success) {
+                console.log('✅ Calendar event created:', calendarResult.eventLink);
+            } else {
+                console.log('⚠️ Calendar event creation failed:', calendarResult.error);
+            }
+        }
         
         // Send confirmation to customer
         emailjs.send("service_1u51w01", "template_xz10eyk", {
