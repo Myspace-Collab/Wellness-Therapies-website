@@ -217,8 +217,9 @@ function sendEmailNotification(name, email, therapy, message) {
             name: name,
             email: email,
             therapy: therapy,
-            message: message,
+            message: "CONTACT FORM SUBMISSION:\n\nName: " + name + "\nEmail: " + email + "\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply to: " + email,
             title: "New Contact Form Submission",
+            type: "contact",
             reply_to: email
         }).then(function (response) {
             console.log('✅ Notification sent successfully to wellness therapies!');
@@ -603,8 +604,9 @@ function sendEmailNotification(name, email, therapy, message) {
             name: name,
             email: email,
             therapy: therapy,
-            message: message,
+            message: "CONTACT FORM SUBMISSION:\n\nName: " + name + "\nEmail: " + email + "\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply to: " + email,
             title: "New Contact Form Submission",
+            type: "contact",
             reply_to: email
         }).then(function (response) {
             console.log('✅ Notification sent successfully to wellness therapies!');
@@ -767,7 +769,10 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return;
     }
     
-    // Send booking request via EmailJS
+    // Show loading message
+    showBookingMessage('Processing your booking request...', 'success');
+    
+    // Send booking request via EmailJS (using same template as contact form)
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
         from_name: name,
         from_email: email,
@@ -779,32 +784,38 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         therapy: therapy,
         date: formattedDate,
         time: formattedTime,
-        message: "NEW APPOINTMENT BOOKING REQUEST:\n\nName: " + name + "\nEmail: " + email + "\nPhone: " + phone + "\nTherapy: " + therapy + "\nDate: " + formattedDate + "\nTime: " + formattedTime + "\n\nAdditional Notes: " + (message || "None") + "\n\nReply to: " + email,
+        message: "APPOINTMENT BOOKING REQUEST:\n\nName: " + name + "\nEmail: " + email + "\nPhone: " + phone + "\nTherapy: " + therapy + "\nPreferred Date: " + formattedDate + "\nPreferred Time: " + formattedTime + "\n\nAdditional Notes: " + (message || "None") + "\n\nReply to: " + email,
         title: "New Appointment Booking",
+        type: "booking",
         reply_to: email
-    }).then(function (response) {
+    }).then(async function (response) {
         console.log('✅ Booking request sent successfully!', response.status);
+        console.log('Response:', response);
         
         // Create calendar event (if Google Calendar is set up)
         if (typeof createCalendarEvent === 'function' && window.API_KEY && window.API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY') {
-            const calendarResult = await createCalendarEvent({
-                name: name,
-                email: email,
-                phone: phone,
-                therapy: therapy,
-                date: date,
-                time: time,
-                message: message
-            });
-            
-            if (calendarResult.success) {
-                console.log('✅ Calendar event created:', calendarResult.eventLink);
-            } else {
-                console.log('⚠️ Calendar event creation failed:', calendarResult.error);
+            try {
+                const calendarResult = await createCalendarEvent({
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    therapy: therapy,
+                    date: date,
+                    time: time,
+                    message: message
+                });
+                
+                if (calendarResult.success) {
+                    console.log('✅ Calendar event created:', calendarResult.eventLink);
+                } else {
+                    console.log('⚠️ Calendar event creation failed:', calendarResult.error);
+                }
+            } catch (error) {
+                console.log('⚠️ Calendar event creation error:', error);
             }
         }
         
-        // Send confirmation to customer
+        // Send confirmation to customer (using same template as contact auto-reply)
         emailjs.send("service_1u51w01", "template_xz10eyk", {
             from_name: "Wellness Therapies",
             from_email: "therapieswellness@gmail.com",
@@ -814,6 +825,7 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             email: email,
             therapy: therapy,
             message: "Hi " + name + ",\n\nThank you for booking an appointment with Wellness Therapies!\n\nYour Appointment Details:\nTherapy: " + therapy + "\nDate: " + formattedDate + "\nTime: " + formattedTime + "\n\nWe will confirm your appointment shortly. If you need to make any changes, please contact us.\n\nBest regards,\nThe Wellness Therapies Team",
+            type: "booking_confirmation",
             reply_to: "therapieswellness@gmail.com"
         }).then(function (response) {
             console.log('✅ Confirmation email sent to customer!');
@@ -832,7 +844,8 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         
     }, function (error) {
         console.log('❌ Booking request FAILED...', error);
-        showBookingMessage('Sorry, there was an error submitting your booking request. Please try again or contact us directly.', 'error');
+        console.error('Error details:', error);
+        showBookingMessage('Sorry, there was an error submitting your booking request. Error: ' + (error.text || error.message || 'Unknown error') + '. Please try again or contact us directly.', 'error');
         
         // Reset button
         submitBtn.textContent = originalText;
@@ -844,8 +857,21 @@ document.getElementById('bookingForm').addEventListener('submit', async function
 // Function to show booking form messages
 function showBookingMessage(text, type) {
     const formMessage = document.getElementById('bookingFormMessage');
+    
+    if (!formMessage) {
+        console.error('Message element not found!');
+        alert(text); // Fallback to alert if element not found
+        return;
+    }
+    
     formMessage.textContent = text;
     formMessage.className = `form-message ${type}`;
+    formMessage.style.display = 'block'; // Ensure it's visible
+    
+    // Scroll to message
+    formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    console.log('Booking message:', text, type);
     
     // Auto-hide error messages after 5 seconds
     if (type === 'error') {
