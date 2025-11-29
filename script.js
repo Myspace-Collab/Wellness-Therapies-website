@@ -663,52 +663,121 @@ document.addEventListener('DOMContentLoaded', function() {
             return minDateString;
         }
         
-        // Set minimum date to next available weekday
+        // Set minimum date to next available weekday - DO THIS FIRST
         const minDate = getNextAvailableWeekday();
         const minDateString = minDate.toISOString().split('T')[0];
+        
+        // CRITICAL: Set min attribute immediately and ensure it stays set
+        bookingDateInput.min = minDateString;
         bookingDateInput.setAttribute('min', minDateString);
-        bookingDateInput.setAttribute('value', ''); // Clear any existing value
+        bookingDateInput.value = ''; // Clear any existing value
         
         // Also set max date to prevent selecting dates too far in the future (optional - 3 months ahead)
         const maxDate = new Date();
         maxDate.setMonth(maxDate.getMonth() + 3);
         bookingDateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
         
-        // Make the input read-only to prevent manual typing (forces calendar picker)
-        bookingDateInput.setAttribute('readonly', 'readonly');
+        // Remove readonly - it can interfere with min attribute enforcement
+        // Instead, we'll validate aggressively
         
-        // Disable past dates by preventing manual entry
+        // Aggressively prevent manual typing of dates
         bookingDateInput.addEventListener('keydown', function(e) {
-            // Prevent all keyboard input (force calendar picker only)
-            e.preventDefault();
-            // Only allow Tab and Escape keys
-            if (e.key !== 'Tab' && e.key !== 'Escape') {
-                return false;
+            // Allow navigation keys
+            if (['Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                return true;
             }
+            // Allow Ctrl/Cmd combinations (for copy/paste prevention)
+            if (e.ctrlKey || e.metaKey) {
+                return true;
+            }
+            // Block all other keys to prevent manual date entry
+            e.preventDefault();
+            return false;
         });
         
         // Prevent paste of invalid dates
         bookingDateInput.addEventListener('paste', function(e) {
             e.preventDefault();
+            // Validate pasted content if it somehow gets through
+            setTimeout(() => {
+                validateDate(this);
+            }, 0);
             return false;
         });
         
-        // Prevent context menu (right-click) to avoid any workarounds
-        bookingDateInput.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            return false;
-        });
-        
-        // Ensure min date is always enforced on focus
+        // Ensure min date is ALWAYS enforced on focus
         bookingDateInput.addEventListener('focus', function() {
-            updateMinDate();
+            const currentMin = updateMinDate();
+            this.min = currentMin;
+            this.setAttribute('min', currentMin);
+            // Clear if current value is invalid
+            if (this.value) {
+                const selected = new Date(this.value + 'T00:00:00');
+                const minAllowed = getNextAvailableWeekday();
+                minAllowed.setHours(0, 0, 0, 0);
+                selected.setHours(0, 0, 0, 0);
+                if (selected < minAllowed) {
+                    this.value = '';
+                }
+            }
         });
         
-        // Ensure min date is always enforced before opening calendar
+        // Ensure min date is ALWAYS enforced before opening calendar
         bookingDateInput.addEventListener('click', function() {
-            updateMinDate();
-            // Force re-apply min attribute
-            this.setAttribute('min', minDateString);
+            const currentMin = updateMinDate();
+            this.min = currentMin;
+            this.setAttribute('min', currentMin);
+            // Double-check the attribute is set
+            if (this.getAttribute('min') !== currentMin) {
+                this.setAttribute('min', currentMin);
+            }
+        });
+        
+        // Watch for any changes to the min attribute and restore it if changed
+        const minAttributeObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'min') {
+                    const currentMin = updateMinDate();
+                    if (bookingDateInput.getAttribute('min') !== currentMin) {
+                        bookingDateInput.min = currentMin;
+                        bookingDateInput.setAttribute('min', currentMin);
+                    }
+                }
+            });
+        });
+        minAttributeObserver.observe(bookingDateInput, { attributes: true, attributeFilter: ['min'] });
+        
+        // Continuously validate the date value
+        const valueObserver = new MutationObserver(function() {
+            if (bookingDateInput.value) {
+                validateDate(bookingDateInput);
+            }
+        });
+        valueObserver.observe(bookingDateInput, { attributes: true, attributeFilter: ['value'] });
+        
+        // Add a periodic check to ensure min is always set (every 500ms)
+        const minCheckInterval = setInterval(function() {
+            const currentMin = getNextAvailableWeekday().toISOString().split('T')[0];
+            if (bookingDateInput.getAttribute('min') !== currentMin) {
+                bookingDateInput.min = currentMin;
+                bookingDateInput.setAttribute('min', currentMin);
+            }
+            // Also validate current value
+            if (bookingDateInput.value) {
+                const selected = new Date(bookingDateInput.value + 'T00:00:00');
+                const minAllowed = getNextAvailableWeekday();
+                minAllowed.setHours(0, 0, 0, 0);
+                selected.setHours(0, 0, 0, 0);
+                if (selected < minAllowed) {
+                    bookingDateInput.value = '';
+                    showBookingMessage('Past dates are not allowed. Please select a future weekday.', 'error');
+                }
+            }
+        }, 500);
+        
+        // Clean up interval when page unloads
+        window.addEventListener('beforeunload', function() {
+            clearInterval(minCheckInterval);
         });
         
         // Intercept any attempt to set a past date
@@ -802,15 +871,45 @@ document.addEventListener('DOMContentLoaded', function() {
             return true;
         }
         
-        // Validate on change (when user selects from calendar)
+        // Validate on change (when user selects from calendar) - MOST IMPORTANT
         bookingDateInput.addEventListener('change', function() {
-            const currentMinDate = updateMinDate(); // Update min date first
+            // Immediately update and enforce min date
+            const currentMinDate = updateMinDate();
+            this.min = currentMinDate;
+            this.setAttribute('min', currentMinDate);
+            
+            // Validate the selected date
+            if (this.value) {
+                const selectedDate = new Date(this.value + 'T00:00:00');
+                const minAllowed = getNextAvailableWeekday();
+                minAllowed.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+                const dayOfWeek = selectedDate.getDay();
+                
+                // If past date or weekend, reject it immediately
+                if (selectedDate < minAllowed || dayOfWeek === 0 || dayOfWeek === 6) {
+                    console.warn('Invalid date selected, clearing:', this.value);
+                    this.value = '';
+                    this.min = currentMinDate;
+                    this.setAttribute('min', currentMinDate);
+                    if (selectedDate < minAllowed) {
+                        showBookingMessage('Past dates are not allowed. Please select a future weekday.', 'error');
+                    } else {
+                        showBookingMessage('Weekends are not allowed. Please select a weekday (Monday-Friday).', 'error');
+                    }
+                    if (bookingTimeSelect) {
+                        bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+                    }
+                    return;
+                }
+            }
+            
+            // If we get here, validate normally
             const isValid = validateDate(this);
             if (!isValid && this.value) {
-                // If invalid, clear the value (don't set to minDateString as it might be invalid)
                 this.value = '';
+                this.min = currentMinDate;
                 this.setAttribute('min', currentMinDate);
-                showBookingMessage('Please select a future weekday. Past dates and weekends are not allowed.', 'error');
             }
         });
         
