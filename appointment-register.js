@@ -50,7 +50,7 @@ class AppointmentRegister {
     // Get available time slots for a date
     getAvailableSlots(date) {
         const allSlots = [
-            '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+            '10:00', '10:30', '11:00', '11:30',
             '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
             '15:00', '15:30'
         ];
@@ -170,7 +170,6 @@ function updateAvailableTimeSlots(date) {
     timeSelect.innerHTML = '<option value="">Select Time</option>';
     
     const timeLabels = {
-        '09:00': '9:00 AM', '09:30': '9:30 AM',
         '10:00': '10:00 AM', '10:30': '10:30 AM',
         '11:00': '11:00 AM', '11:30': '11:30 AM',
         '12:00': '12:00 PM', '12:30': '12:30 PM',

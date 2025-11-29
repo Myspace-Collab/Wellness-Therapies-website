@@ -2,13 +2,16 @@
 // This file handles calendar availability checking and appointment creation
 
 // Google Calendar API Configuration
-const CALENDAR_ID = 'therapieswellness@gmail.com'; // Your calendar ID
-// IMPORTANT: Replace with your actual API key from Google Cloud Console
-const API_KEY = 'AIzaSyBBzfo877j_O-6O80Ggp4E3mNFv_VEKWS8'; // Get from Google Cloud Console
+// IMPORTANT: API keys are now loaded from config.js (not committed to GitHub)
+// Create config.js from config.example.js and add your API keys there
+
+// Get API key from config (set in config.js)
+// These are loaded from config.js which is NOT committed to GitHub
+const CALENDAR_ID = window.GOOGLE_CALENDAR_ID || 'therapieswellness@gmail.com';
+const API_KEY = window.GOOGLE_CALENDAR_API_KEY || '';
 
 // Make functions globally available
 window.CALENDAR_ID = CALENDAR_ID;
-window.API_KEY = API_KEY;
 
 // Check if a time slot is available
 async function checkAvailability(date, time) {
@@ -16,6 +19,12 @@ async function checkAvailability(date, time) {
         // Convert date and time to ISO format for Google Calendar
         const dateTime = new Date(`${date}T${time}:00`);
         const endTime = new Date(dateTime.getTime() + 60 * 60 * 1000); // 1 hour session
+        
+        // Check if API key is configured
+        if (!API_KEY || API_KEY === 'YOUR_GOOGLE_CALENDAR_API_KEY_HERE') {
+            console.warn('Google Calendar API key not configured. Skipping availability check.');
+            return true; // Assume available if API key not set
+        }
         
         // Google Calendar API endpoint
         const url = `https://www.googleapis.com/calendar/v3/freeBusy?key=${API_KEY}`;
@@ -80,6 +89,12 @@ async function createCalendarEvent(bookingData) {
             }
         };
         
+        // Check if API key is configured
+        if (!API_KEY || API_KEY === 'YOUR_GOOGLE_CALENDAR_API_KEY_HERE') {
+            console.warn('Google Calendar API key not configured. Cannot create calendar event.');
+            return { success: false, error: 'API key not configured' };
+        }
+        
         // Google Calendar API endpoint
         const url = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?key=${API_KEY}`;
         
@@ -109,7 +124,7 @@ async function createCalendarEvent(bookingData) {
 // Get available time slots for a specific date
 async function getAvailableSlots(date) {
     const slots = [
-        '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
+        '10:00', '10:30', '11:00', '11:30',
         '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
         '15:00', '15:30'
     ];

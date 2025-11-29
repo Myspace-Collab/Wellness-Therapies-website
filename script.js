@@ -160,8 +160,13 @@ function showMessage(text, type) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('EmailJS available:', typeof emailjs !== 'undefined');
     if (typeof emailjs !== 'undefined') {
-        emailjs.init("m4srsWKr-0feuYu9N");
-        console.log('EmailJS initialized with key: m4srsWKr-0feuYu9N');
+        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
+        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE') {
+            emailjs.init(emailjsKey);
+        } else {
+            console.warn('EmailJS public key not configured. Please create config.js from config.example.js');
+        }
+        console.log('EmailJS initialized');
     } else {
         console.error('EmailJS not loaded! Check if the script tag is correct.');
     }
@@ -547,8 +552,13 @@ function showMessage(text, type) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('EmailJS available:', typeof emailjs !== 'undefined');
     if (typeof emailjs !== 'undefined') {
-        emailjs.init("m4srsWKr-0feuYu9N");
-        console.log('EmailJS initialized with key: m4srsWKr-0feuYu9N');
+        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
+        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE') {
+            emailjs.init(emailjsKey);
+        } else {
+            console.warn('EmailJS public key not configured. Please create config.js from config.example.js');
+        }
+        console.log('EmailJS initialized');
     } else {
         console.error('EmailJS not loaded! Check if the script tag is correct.');
     }
@@ -630,9 +640,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingTimeSelect = document.getElementById('bookingTime');
     
     if (bookingDateInput) {
-        const today = new Date();
-        const todayString = today.toISOString().split('T')[0];
-        bookingDateInput.setAttribute('min', todayString);
+        // Set minimum date to tomorrow (not today, since we don't allow same-day bookings)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowString = tomorrow.toISOString().split('T')[0];
+        bookingDateInput.setAttribute('min', tomorrowString);
         
         // Function to get next weekday
         function getNextWeekday(date) {
@@ -642,41 +654,67 @@ document.addEventListener('DOMContentLoaded', function() {
             return new Date(d.setDate(diff));
         }
         
-        // Restrict to weekdays only (Monday-Friday)
-        bookingDateInput.addEventListener('change', function() {
-            const selectedDate = new Date(this.value + 'T00:00:00');
+        // Function to validate date
+        function validateDate(input) {
+            if (!input.value) return; // Skip if empty
+            
+            const selectedDate = new Date(input.value + 'T00:00:00');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
             const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
             
-            // Check if date is in the past
-            if (selectedDate < today) {
-                showBookingMessage('Please select a future date.', 'error');
-                this.value = '';
+            // Check if date is today or in the past (STRICT - no today allowed)
+            if (selectedDate <= today) {
+                showBookingMessage('Please select a future date. Past dates and today are not allowed.', 'error');
+                input.value = '';
                 if (bookingTimeSelect) {
                     bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
                 }
-                return;
+                return false;
             }
             
             // Check if weekend
             if (dayOfWeek === 0 || dayOfWeek === 6) {
                 showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
-                this.value = '';
+                input.value = '';
                 if (bookingTimeSelect) {
                     bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
                 }
-                return;
+                return false;
+            }
+            
+            // Clear any previous error messages if date is valid
+            const formMessage = document.getElementById('bookingFormMessage');
+            if (formMessage && formMessage.classList.contains('error')) {
+                formMessage.textContent = '';
+                formMessage.className = 'form-message';
             }
             
             // Update available time slots based on existing appointments
             if (typeof updateAvailableTimeSlots === 'function') {
-                updateAvailableTimeSlots(this.value);
+                updateAvailableTimeSlots(input.value);
             }
             
-            // If today's date, filter out past times
-            if (selectedDate.toDateString() === today.toDateString()) {
-                filterPastTimes();
+            return true;
+        }
+        
+        // Validate on change (when user selects from calendar)
+        bookingDateInput.addEventListener('change', function() {
+            validateDate(this);
+        });
+        
+        // Also validate on input (when user manually types date)
+        bookingDateInput.addEventListener('input', function() {
+            if (this.value) {
+                validateDate(this);
+            }
+        });
+        
+        // Validate on blur (when user leaves the field)
+        bookingDateInput.addEventListener('blur', function() {
+            if (this.value) {
+                validateDate(this);
             }
         });
         
@@ -757,54 +795,50 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return;
     }
     
-    // Date validation - check if date is in the past
+    // Date validation - check if date is in the past (STRICT VALIDATION)
     const selectedDate = new Date(date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (selectedDate < today) {
-        showBookingMessage('Please select a future date.', 'error');
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    // Check if date is today or in the past
+    if (selectedDate <= today) {
+        showBookingMessage('Please select a future date. Past dates and today are not allowed.', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
+        // Clear the date input
+        this.querySelector('#bookingDate').value = '';
         return;
     }
     
-    // If today's date, check if time is in the past
-    if (selectedDate.toDateString() === today.toDateString()) {
-        const now = new Date();
-        const [hours, minutes] = time.split(':').map(Number);
-        const selectedTime = new Date(selectedDate);
-        selectedTime.setHours(hours, minutes, 0, 0);
-        
-        // Add 30 minute buffer (can't book less than 30 minutes from now)
-        const bufferTime = new Date(now.getTime() + 30 * 60 * 1000);
-        
-        if (selectedTime < bufferTime) {
-            showBookingMessage('Please select a time at least 30 minutes from now.', 'error');
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
-            submitBtn.style.opacity = '1';
-            return;
-        }
-    }
+    // Note: We don't allow today's date, so no need to check for past times on today
     
     // Validate weekday (Monday-Friday only)
     const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
     if (dayOfWeek === 0 || dayOfWeek === 6) {
         showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        // Clear the date input
+        this.querySelector('#bookingDate').value = '';
         return;
     }
     
-    // Validate time is within business hours (9:00 AM - 3:30 PM)
+    // Validate time is within business hours (10:00 AM - 3:30 PM)
     const timeValue = time.split(':');
     const hours = parseInt(timeValue[0]);
     const minutes = parseInt(timeValue[1]);
     const totalMinutes = hours * 60 + minutes;
-    const minMinutes = 9 * 60; // 9:00 AM
+    const minMinutes = 10 * 60; // 10:00 AM
     const maxMinutes = 15 * 60 + 30; // 3:30 PM
     
     if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
-        showBookingMessage('Appointments are only available between 9:00 AM and 3:30 PM.', 'error');
+        showBookingMessage('Appointments are only available between 10:00 AM and 3:30 PM.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
         return;
     }
     
@@ -815,7 +849,7 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Check Google Calendar availability (if API key is set)
-    if (typeof checkAvailability === 'function' && window.API_KEY && window.API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY') {
+    if (typeof checkAvailability === 'function' && window.GOOGLE_CALENDAR_API_KEY && window.GOOGLE_CALENDAR_API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY_HERE') {
         showBookingMessage('Checking calendar availability...', 'success');
         const isAvailable = await checkAvailability(date, time);
         if (!isAvailable) {
@@ -867,9 +901,20 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return;
     }
     
-    // Check if EmailJS is available
+    // Check if EmailJS is available and initialized
     if (typeof emailjs === 'undefined') {
-        showBookingMessage('Email service not available. Please try again later or contact us directly.', 'error');
+        console.error('EmailJS is not loaded!');
+        showBookingMessage('Email service not available. Please refresh the page and try again.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        return;
+    }
+    
+    // Verify EmailJS is initialized
+    if (!emailjs.init) {
+        console.error('EmailJS is not properly initialized!');
+        showBookingMessage('Email service not properly initialized. Please refresh the page.', 'error');
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
@@ -877,7 +922,13 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Send booking request via EmailJS (using same template as contact form)
-    console.log('Sending booking request via EmailJS...');
+    console.log('=== SENDING BOOKING NOTIFICATION ===');
+    console.log('Service ID: service_1u51w01');
+    console.log('Template ID: template_zj4pg7k');
+    console.log('To Email: therapieswellness@gmail.com');
+    console.log('From Name:', name);
+    console.log('From Email:', email);
+    
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
         from_name: name,
         from_email: email,
@@ -894,11 +945,19 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         type: "booking",
         reply_to: email
     }).then(async function (response) {
-        console.log('✅ Booking request sent successfully!', response.status);
+        console.log('✅ Booking notification sent successfully!', response.status);
         console.log('Response:', response);
         
+        // Show success message immediately after notification email is sent
+        showBookingMessage('✅ Appointment booked successfully! We have received your booking request and will send you a confirmation email shortly.', 'success');
+        
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        
         // Create calendar event (if Google Calendar is set up)
-        if (typeof createCalendarEvent === 'function' && window.API_KEY && window.API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY') {
+        if (typeof createCalendarEvent === 'function' && window.GOOGLE_CALENDAR_API_KEY && window.GOOGLE_CALENDAR_API_KEY !== 'YOUR_GOOGLE_CALENDAR_API_KEY_HERE') {
             try {
                 const calendarResult = await createCalendarEvent({
                     name: name,
@@ -933,19 +992,18 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             type: "booking_confirmation",
             reply_to: "therapieswellness@gmail.com"
         }).then(function (response) {
-            console.log('✅ Confirmation email sent to customer!');
-            showBookingMessage('Appointment request sent successfully! We have sent you a confirmation email and will contact you shortly to confirm your booking.', 'success');
-            document.getElementById('bookingForm').reset();
+            console.log('✅ Confirmation email sent to customer!', response.status);
+            // Update message to indicate confirmation email was sent
+            showBookingMessage('✅ Appointment booked successfully! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your booking.', 'success');
         }, function (error) {
-            console.log('Confirmation email failed, but booking request sent:', error);
-            showBookingMessage('Appointment request sent successfully! We will contact you shortly to confirm your booking.', 'success');
-            document.getElementById('bookingForm').reset();
+            console.log('⚠️ Confirmation email failed, but booking notification sent:', error);
+            console.error('Confirmation email error details:', error);
+            // Keep the success message since the booking notification was sent
+            showBookingMessage('✅ Appointment booked successfully! We have received your booking request. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
         });
         
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
+        // Reset form after successful booking
+        document.getElementById('bookingForm').reset();
         
     }, function (error) {
         console.log('❌ Booking request FAILED...', error);
@@ -979,18 +1037,17 @@ function showBookingMessage(text, type) {
     formMessage.style.display = 'block';
     formMessage.style.visibility = 'visible';
     formMessage.style.opacity = '1';
+    formMessage.style.minHeight = 'auto';
     
     // Force reflow to ensure visibility
-    formMessage.offsetHeight;
+    void formMessage.offsetHeight;
     
-    // Scroll to message
-    setTimeout(() => {
-        formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
+    // Scroll to message immediately
+    formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     
-    console.log('Booking message:', text, type);
+    console.log('📢 Booking message displayed:', text, 'Type:', type);
     
-    // Auto-hide error messages after 5 seconds
+    // Auto-hide error messages after 8 seconds (but keep success messages)
     if (type === 'error') {
         setTimeout(() => {
             formMessage.textContent = '';
