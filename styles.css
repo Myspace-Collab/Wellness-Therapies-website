@@ -1269,6 +1269,30 @@ body {
     cursor: pointer;
 }
 
+.booking-form input[type="date"]:invalid {
+    border-color: #f8d7da;
+    background-color: #fff5f5;
+}
+
+.booking-form input[type="date"]:focus {
+    outline: 2px solid #4CAF50;
+    outline-offset: 2px;
+}
+
+/* Disable past dates in date picker */
+.booking-form input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+}
+
+.booking-form input[type="date"]:read-only {
+    background-color: #ffffff;
+    cursor: pointer;
+}
+
+.booking-form input[type="date"] {
+    cursor: pointer;
+}
+
 .booking-form .submit-btn {
     background: linear-gradient(45deg, #4a90e2, #6bb6ff);
     color: white;
