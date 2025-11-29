@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 // Mobile Navigation Toggle
 const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
@@ -264,32 +263,8 @@ function sendEmailNotification(name, email, therapy, message) {
     // });
 }
 
-// Intersection Observer for animations
-const observerOptions = {
-    threshold: 0.1,
-    rootMargin: '0px 0px -50px 0px'
-};
-
-const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-        if (entry.isIntersecting) {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-        }
-    });
-}, observerOptions);
-
-// Observe elements for animation
-document.addEventListener('DOMContentLoaded', () => {
-    const animateElements = document.querySelectorAll('.therapy-card, .about-text, .contact-info, .contact-form');
-    
-    animateElements.forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(el);
-    });
-});
+// NOTE: Intersection Observer code is already defined above (lines 267-292)
+// Duplicate code removed to prevent redeclaration errors
 
 // Add floating animation to hero elements
 document.addEventListener('DOMContentLoaded', () => {
@@ -390,10 +365,6 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
-=======
-// Mobile Navigation Toggle
-const hamburger = document.querySelector('.hamburger');
-const navMenu = document.querySelector('.nav-menu');
 
 hamburger.addEventListener('click', () => {
     hamburger.classList.toggle('active');
@@ -639,365 +610,219 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookingDateInput = document.getElementById('bookingDate');
     const bookingTimeSelect = document.getElementById('bookingTime');
     
-    if (bookingDateInput) {
-        // Function to get next available weekday (Monday-Friday)
-        function getNextAvailableWeekday() {
-            const today = new Date();
-            let nextDate = new Date(today);
-            nextDate.setDate(today.getDate() + 1); // Start from tomorrow
-            
-            // Find next weekday (Monday = 1, Friday = 5)
-            while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
-                nextDate.setDate(nextDate.getDate() + 1);
-            }
-            
-            return nextDate;
+    if (!bookingDateInput) {
+        console.error('Booking date input not found!');
+        return;
+    }
+    
+    // CRITICAL: Function to get next available weekday (Monday-Friday)
+    function getNextAvailableWeekday() {
+        const today = new Date();
+        let nextDate = new Date(today);
+        nextDate.setDate(today.getDate() + 1); // Start from tomorrow
+        
+        // Find next weekday (Monday = 1, Friday = 5)
+        while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+            nextDate.setDate(nextDate.getDate() + 1);
         }
         
-        // Function to update minimum date (call this whenever needed)
-        function updateMinDate() {
-            const minDate = getNextAvailableWeekday();
-            const minDateString = minDate.toISOString().split('T')[0];
-            bookingDateInput.setAttribute('min', minDateString);
-            bookingDateInput.setAttribute('value', ''); // Clear any invalid value
-            return minDateString;
-        }
+        return nextDate;
+    }
+    
+    // Function to check if a date is valid (future weekday)
+    function isValidDate(dateString) {
+        if (!dateString) return false;
         
-        // Set minimum date to next available weekday - DO THIS FIRST
-        const minDate = getNextAvailableWeekday();
-        const minDateString = minDate.toISOString().split('T')[0];
+        const selectedDate = new Date(dateString + 'T00:00:00');
+        const minAllowed = getNextAvailableWeekday();
+        minAllowed.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = selectedDate.getDay();
         
-        // CRITICAL: Set min attribute immediately and ensure it stays set
-        bookingDateInput.min = minDateString;
-        bookingDateInput.setAttribute('min', minDateString);
-        bookingDateInput.value = ''; // Clear any existing value
-        
-        // Also set max date to prevent selecting dates too far in the future (optional - 3 months ahead)
-        const maxDate = new Date();
-        maxDate.setMonth(maxDate.getMonth() + 3);
-        bookingDateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
-        
-        // Remove readonly - it can interfere with min attribute enforcement
-        // Instead, we'll validate aggressively
-        
-        // Aggressively prevent manual typing of dates
-        bookingDateInput.addEventListener('keydown', function(e) {
-            // Allow navigation keys
-            if (['Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
-                return true;
+        // Must be future date and weekday
+        return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
+    }
+    
+    // Function to enforce valid date - clears if invalid
+    function enforceValidDate() {
+        if (bookingDateInput.value && !isValidDate(bookingDateInput.value)) {
+            console.warn('Invalid date detected, clearing:', bookingDateInput.value);
+            bookingDateInput.value = '';
+            showBookingMessage('Past dates and weekends are not allowed. Please select a future weekday.', 'error');
+            if (bookingTimeSelect) {
+                bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
             }
-            // Allow Ctrl/Cmd combinations (for copy/paste prevention)
-            if (e.ctrlKey || e.metaKey) {
-                return true;
-            }
-            // Block all other keys to prevent manual date entry
-            e.preventDefault();
-            return false;
-        });
-        
-        // Prevent paste of invalid dates
-        bookingDateInput.addEventListener('paste', function(e) {
-            e.preventDefault();
-            // Validate pasted content if it somehow gets through
-            setTimeout(() => {
-                validateDate(this);
-            }, 0);
-            return false;
-        });
-        
-        // Ensure min date is ALWAYS enforced on focus
-        bookingDateInput.addEventListener('focus', function() {
-            const currentMin = updateMinDate();
-            this.min = currentMin;
-            this.setAttribute('min', currentMin);
-            // Clear if current value is invalid
-            if (this.value) {
-                const selected = new Date(this.value + 'T00:00:00');
-                const minAllowed = getNextAvailableWeekday();
-                minAllowed.setHours(0, 0, 0, 0);
-                selected.setHours(0, 0, 0, 0);
-                if (selected < minAllowed) {
-                    this.value = '';
-                }
-            }
-        });
-        
-        // Ensure min date is ALWAYS enforced before opening calendar
-        bookingDateInput.addEventListener('click', function() {
-            const currentMin = updateMinDate();
-            this.min = currentMin;
-            this.setAttribute('min', currentMin);
-            // Double-check the attribute is set
-            if (this.getAttribute('min') !== currentMin) {
-                this.setAttribute('min', currentMin);
-            }
-        });
-        
-        // Watch for any changes to the min attribute and restore it if changed
-        const minAttributeObserver = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'min') {
-                    const currentMin = updateMinDate();
-                    if (bookingDateInput.getAttribute('min') !== currentMin) {
-                        bookingDateInput.min = currentMin;
-                        bookingDateInput.setAttribute('min', currentMin);
-                    }
-                }
-            });
-        });
-        minAttributeObserver.observe(bookingDateInput, { attributes: true, attributeFilter: ['min'] });
-        
-        // Continuously validate the date value
-        const valueObserver = new MutationObserver(function() {
-            if (bookingDateInput.value) {
-                validateDate(bookingDateInput);
-            }
-        });
-        valueObserver.observe(bookingDateInput, { attributes: true, attributeFilter: ['value'] });
-        
-        // Add a periodic check to ensure min is always set (every 500ms)
-        const minCheckInterval = setInterval(function() {
-            const currentMin = getNextAvailableWeekday().toISOString().split('T')[0];
-            if (bookingDateInput.getAttribute('min') !== currentMin) {
-                bookingDateInput.min = currentMin;
-                bookingDateInput.setAttribute('min', currentMin);
-            }
-            // Also validate current value
-            if (bookingDateInput.value) {
-                const selected = new Date(bookingDateInput.value + 'T00:00:00');
-                const minAllowed = getNextAvailableWeekday();
-                minAllowed.setHours(0, 0, 0, 0);
-                selected.setHours(0, 0, 0, 0);
-                if (selected < minAllowed) {
-                    bookingDateInput.value = '';
-                    showBookingMessage('Past dates are not allowed. Please select a future weekday.', 'error');
-                }
-            }
-        }, 500);
-        
-        // Clean up interval when page unloads
-        window.addEventListener('beforeunload', function() {
-            clearInterval(minCheckInterval);
-        });
-        
-        // Intercept any attempt to set a past date
-        const originalValueSetter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
-        Object.defineProperty(bookingDateInput, 'value', {
-            set: function(newValue) {
-                if (newValue) {
-                    const selectedDate = new Date(newValue + 'T00:00:00');
-                    const minAllowed = getNextAvailableWeekday();
-                    minAllowed.setHours(0, 0, 0, 0);
-                    selectedDate.setHours(0, 0, 0, 0);
-                    
-                    // If date is before minimum, reject it
-                    if (selectedDate < minAllowed) {
-                        console.warn('Attempted to set past date, rejected:', newValue);
-                        originalValueSetter.call(this, '');
-                        updateMinDate();
-                        return;
-                    }
-                    
-                    // If date is a weekend, reject it
-                    const dayOfWeek = selectedDate.getDay();
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        console.warn('Attempted to set weekend date, rejected:', newValue);
-                        originalValueSetter.call(this, '');
-                        updateMinDate();
-                        return;
-                    }
-                }
-                originalValueSetter.call(this, newValue);
-            },
-            get: function() {
-                return Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').get.call(this);
-            }
-        });
-        
-        // Function to validate date
-        function validateDate(input) {
-            if (!input.value) {
-                // Clear time selection if date is cleared
-                if (bookingTimeSelect) {
-                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
-                }
-                return false; // Skip if empty
-            }
-            
-            const selectedDate = new Date(input.value + 'T00:00:00');
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            selectedDate.setHours(0, 0, 0, 0);
-            const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
-            
-            // Get minimum allowed date (next available weekday)
-            const minAllowedDate = getNextAvailableWeekday();
-            minAllowedDate.setHours(0, 0, 0, 0);
-            
-            // Check if date is today, in the past, or before minimum allowed date
-            if (selectedDate < minAllowedDate) {
-                showBookingMessage('Please select a future weekday. Past dates and today are not allowed.', 'error');
-                input.value = '';
-                // Reset to minimum date
-                input.setAttribute('min', minDateString);
-                if (bookingTimeSelect) {
-                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
-                }
-                return false;
-            }
-            
-            // Check if weekend
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
-                input.value = '';
-                if (bookingTimeSelect) {
-                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
-                }
-                return false;
-            }
-            
-            // Clear any previous error messages if date is valid
-            const formMessage = document.getElementById('bookingFormMessage');
-            if (formMessage && formMessage.classList.contains('error')) {
-                formMessage.textContent = '';
-                formMessage.className = 'form-message';
-            }
-            
-            // Update available time slots based on existing appointments
-            if (typeof updateAvailableTimeSlots === 'function') {
-                updateAvailableTimeSlots(input.value);
-            }
-            
-            return true;
-        }
-        
-        // Validate on change (when user selects from calendar) - MOST IMPORTANT
-        bookingDateInput.addEventListener('change', function() {
-            // Immediately update and enforce min date
-            const currentMinDate = updateMinDate();
-            this.min = currentMinDate;
-            this.setAttribute('min', currentMinDate);
-            
-            // Validate the selected date
-            if (this.value) {
-                const selectedDate = new Date(this.value + 'T00:00:00');
-                const minAllowed = getNextAvailableWeekday();
-                minAllowed.setHours(0, 0, 0, 0);
-                selectedDate.setHours(0, 0, 0, 0);
-                const dayOfWeek = selectedDate.getDay();
-                
-                // If past date or weekend, reject it immediately
-                if (selectedDate < minAllowed || dayOfWeek === 0 || dayOfWeek === 6) {
-                    console.warn('Invalid date selected, clearing:', this.value);
-                    this.value = '';
-                    this.min = currentMinDate;
-                    this.setAttribute('min', currentMinDate);
-                    if (selectedDate < minAllowed) {
-                        showBookingMessage('Past dates are not allowed. Please select a future weekday.', 'error');
-                    } else {
-                        showBookingMessage('Weekends are not allowed. Please select a weekday (Monday-Friday).', 'error');
-                    }
-                    if (bookingTimeSelect) {
-                        bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
-                    }
-                    return;
-                }
-            }
-            
-            // If we get here, validate normally
-            const isValid = validateDate(this);
-            if (!isValid && this.value) {
-                this.value = '';
-                this.min = currentMinDate;
-                this.setAttribute('min', currentMinDate);
-            }
-        });
-        
-        // Also validate on input (when user manually types date)
-        bookingDateInput.addEventListener('input', function() {
-            if (this.value) {
-                const isValid = validateDate(this);
-                if (!isValid) {
-                    // Force reset to minimum date if invalid
-                    setTimeout(() => {
-                        const selectedDate = new Date(this.value + 'T00:00:00');
-                        const minAllowed = getNextAvailableWeekday();
-                        minAllowed.setHours(0, 0, 0, 0);
-                        if (!this.value || selectedDate < minAllowed) {
-                            this.value = minDateString;
-                        }
-                    }, 0);
-                }
-            }
-        });
-        
-        // Validate on blur (when user leaves the field)
-        bookingDateInput.addEventListener('blur', function() {
-            if (this.value) {
-                const isValid = validateDate(this);
-                if (!isValid) {
-                    // Reset to minimum date if invalid
-                    this.value = minDateString;
-                }
-            }
-        });
-        
-        // Additional validation: check on every interaction
-        bookingDateInput.addEventListener('invalid', function(e) {
-            e.preventDefault();
-            showBookingMessage('Please select a valid future weekday.', 'error');
-            this.value = minDateString;
-        });
-        
-        // Prevent selection of disabled dates by intercepting clicks
-        bookingDateInput.addEventListener('click', function() {
-            // Ensure min attribute is always set
-            this.setAttribute('min', minDateString);
-        });
-        
-        // Filter out past times if today is selected
-        function filterPastTimes() {
-            if (!bookingTimeSelect) return;
-            
-            const now = new Date();
-            const currentHour = now.getHours();
-            const currentMinute = now.getMinutes();
-            const currentTotalMinutes = currentHour * 60 + currentMinute;
-            
-            const options = bookingTimeSelect.querySelectorAll('option');
-            options.forEach(option => {
-                if (option.value) {
-                    const [hours, minutes] = option.value.split(':').map(Number);
-                    const optionTotalMinutes = hours * 60 + minutes;
-                    
-                    // Disable past times (with 30 minute buffer)
-                    if (optionTotalMinutes <= currentTotalMinutes + 30) {
-                        option.disabled = true;
-                        option.style.display = 'none';
-                    } else {
-                        option.disabled = false;
-                        option.style.display = 'block';
-                    }
-                }
-            });
-        }
-        
-        // Also filter times when time dropdown is opened
-        if (bookingTimeSelect) {
-            bookingTimeSelect.addEventListener('focus', function() {
-                const selectedDate = bookingDateInput.value;
-                if (selectedDate) {
-                    const date = new Date(selectedDate + 'T00:00:00');
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    if (date.toDateString() === today.toDateString()) {
-                        filterPastTimes();
-                    }
-                }
-            });
         }
     }
+    
+    // Set minimum date IMMEDIATELY
+    const minDate = getNextAvailableWeekday();
+    const minDateString = minDate.toISOString().split('T')[0];
+    
+    // Set min attribute using multiple methods to ensure it sticks
+    bookingDateInput.min = minDateString;
+    bookingDateInput.setAttribute('min', minDateString);
+    bookingDateInput.value = ''; // Clear any existing value
+    
+    // Set max date
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    bookingDateInput.setAttribute('max', maxDate.toISOString().split('T')[0]);
+    
+    // COMPLETELY BLOCK manual typing - make it read-only but allow calendar
+    bookingDateInput.addEventListener('keydown', function(e) {
+        // Only allow Tab, Escape, and arrow keys for navigation
+        const allowedKeys = ['Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'];
+        if (allowedKeys.includes(e.key)) {
+            return true;
+        }
+        // Block everything else
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true); // Use capture phase
+    
+    // Block all text input
+    bookingDateInput.addEventListener('keypress', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true);
+    
+    // Block paste
+    bookingDateInput.addEventListener('paste', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        enforceValidDate();
+        return false;
+    }, true);
+    
+    // Block drop
+    bookingDateInput.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+    }, true);
+    
+    // Block context menu
+    bookingDateInput.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        return false;
+    });
+    
+    // CRITICAL: Validate on EVERY possible event
+    const validateEvents = ['change', 'input', 'blur', 'focus', 'click'];
+    validateEvents.forEach(eventType => {
+        bookingDateInput.addEventListener(eventType, function() {
+            // Always ensure min is set
+            const currentMin = getNextAvailableWeekday().toISOString().split('T')[0];
+            if (this.min !== currentMin) {
+                this.min = currentMin;
+                this.setAttribute('min', currentMin);
+            }
+            
+            // Validate current value
+            if (this.value) {
+                enforceValidDate();
+            }
+        }, true);
+    });
+    
+    // Watch for value changes using MutationObserver
+    const valueObserver = new MutationObserver(function() {
+        enforceValidDate();
+    });
+    
+    // Also watch the input property directly
+    let lastValue = '';
+    const checkValue = setInterval(function() {
+        if (bookingDateInput.value !== lastValue) {
+            lastValue = bookingDateInput.value;
+            if (bookingDateInput.value) {
+                // Ensure min is always set
+                const currentMin = getNextAvailableWeekday().toISOString().split('T')[0];
+                bookingDateInput.min = currentMin;
+                bookingDateInput.setAttribute('min', currentMin);
+                
+                // Validate
+                enforceValidDate();
+            }
+        }
+    }, 100); // Check every 100ms
+    
+    // Intercept value setter
+    const originalDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    Object.defineProperty(bookingDateInput, 'value', {
+        get: function() {
+            return originalDescriptor.get.call(this);
+        },
+        set: function(newValue) {
+            if (newValue && !isValidDate(newValue)) {
+                console.warn('Blocked attempt to set invalid date:', newValue);
+                originalDescriptor.set.call(this, '');
+                enforceValidDate();
+                return;
+            }
+            originalDescriptor.set.call(this, newValue);
+        },
+        configurable: true
+    });
+    
+    // Watch for min attribute changes
+    const minObserver = new MutationObserver(function() {
+        const currentMin = getNextAvailableWeekday().toISOString().split('T')[0];
+        if (bookingDateInput.getAttribute('min') !== currentMin) {
+            bookingDateInput.min = currentMin;
+            bookingDateInput.setAttribute('min', currentMin);
+        }
+    });
+    minObserver.observe(bookingDateInput, { attributes: true, attributeFilter: ['min'] });
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        clearInterval(checkValue);
+    });
+    
+    // Function to validate date (for form submission)
+    function validateDate(input) {
+        if (!input || !input.value) {
+            if (bookingTimeSelect) {
+                bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+            }
+            return false;
+        }
+        
+        if (!isValidDate(input.value)) {
+            showBookingMessage('Please select a future weekday. Past dates and weekends are not allowed.', 'error');
+            input.value = '';
+            if (bookingTimeSelect) {
+                bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+            }
+            return false;
+        }
+        
+        // Clear any previous error messages if date is valid
+        const formMessage = document.getElementById('bookingFormMessage');
+        if (formMessage && formMessage.classList.contains('error')) {
+            formMessage.textContent = '';
+            formMessage.className = 'form-message';
+        }
+        
+        // Update available time slots based on existing appointments
+        if (typeof updateAvailableTimeSlots === 'function') {
+            updateAvailableTimeSlots(input.value);
+        }
+        
+        return true;
+    }
+    
+    // Add validateDate to the bookingDateInput for form submission validation
+    bookingDateInput.validateDate = function() {
+        return validateDate(this);
+    };
+    
+    // NOTE: All date restrictions are handled in the new implementation above (lines 636-813)
+    // The validateDate function above is used for form submission validation
 });
 
 // Booking form submission
@@ -1482,4 +1307,3 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
->>>>>>> Stashed changes
