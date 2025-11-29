@@ -627,28 +627,101 @@ function sendEmailNotification(name, email, therapy, message) {
 document.addEventListener('DOMContentLoaded', function() {
     // Set minimum date to today and restrict to weekdays only
     const bookingDateInput = document.getElementById('bookingDate');
+    const bookingTimeSelect = document.getElementById('bookingTime');
+    
     if (bookingDateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        bookingDateInput.setAttribute('min', today);
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        bookingDateInput.setAttribute('min', todayString);
+        
+        // Function to get next weekday
+        function getNextWeekday(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() + (day === 0 ? 1 : day === 6 ? 2 : 0);
+            return new Date(d.setDate(diff));
+        }
         
         // Restrict to weekdays only (Monday-Friday)
         bookingDateInput.addEventListener('change', function() {
-            const selectedDate = new Date(this.value);
+            const selectedDate = new Date(this.value + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
             const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
             
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                alert('Appointments are only available Monday through Friday. Please select a weekday.');
+            // Check if date is in the past
+            if (selectedDate < today) {
+                showBookingMessage('Please select a future date.', 'error');
                 this.value = '';
-                // Reset time slot dropdown
-                const timeSelect = document.getElementById('bookingTime');
-                if (timeSelect) {
-                    timeSelect.innerHTML = '<option value="">Select Time</option>';
+                if (bookingTimeSelect) {
+                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
                 }
-            } else {
-                // Update available time slots based on existing appointments
+                return;
+            }
+            
+            // Check if weekend
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
+                this.value = '';
+                if (bookingTimeSelect) {
+                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+                }
+                return;
+            }
+            
+            // Update available time slots based on existing appointments
+            if (typeof updateAvailableTimeSlots === 'function') {
                 updateAvailableTimeSlots(this.value);
             }
+            
+            // If today's date, filter out past times
+            if (selectedDate.toDateString() === today.toDateString()) {
+                filterPastTimes();
+            }
         });
+        
+        // Filter out past times if today is selected
+        function filterPastTimes() {
+            if (!bookingTimeSelect) return;
+            
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTotalMinutes = currentHour * 60 + currentMinute;
+            
+            const options = bookingTimeSelect.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value) {
+                    const [hours, minutes] = option.value.split(':').map(Number);
+                    const optionTotalMinutes = hours * 60 + minutes;
+                    
+                    // Disable past times (with 30 minute buffer)
+                    if (optionTotalMinutes <= currentTotalMinutes + 30) {
+                        option.disabled = true;
+                        option.style.display = 'none';
+                    } else {
+                        option.disabled = false;
+                        option.style.display = 'block';
+                    }
+                }
+            });
+        }
+        
+        // Also filter times when time dropdown is opened
+        if (bookingTimeSelect) {
+            bookingTimeSelect.addEventListener('focus', function() {
+                const selectedDate = bookingDateInput.value;
+                if (selectedDate) {
+                    const date = new Date(selectedDate + 'T00:00:00');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    
+                    if (date.toDateString() === today.toDateString()) {
+                        filterPastTimes();
+                    }
+                }
+            });
+        }
     }
 });
 
@@ -685,12 +758,34 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Date validation - check if date is in the past
-    const selectedDate = new Date(date);
+    const selectedDate = new Date(date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (selectedDate < today) {
         showBookingMessage('Please select a future date.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
         return;
+    }
+    
+    // If today's date, check if time is in the past
+    if (selectedDate.toDateString() === today.toDateString()) {
+        const now = new Date();
+        const [hours, minutes] = time.split(':').map(Number);
+        const selectedTime = new Date(selectedDate);
+        selectedTime.setHours(hours, minutes, 0, 0);
+        
+        // Add 30 minute buffer (can't book less than 30 minutes from now)
+        const bufferTime = new Date(now.getTime() + 30 * 60 * 1000);
+        
+        if (selectedTime < bufferTime) {
+            showBookingMessage('Please select a time at least 30 minutes from now.', 'error');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            return;
+        }
     }
     
     // Validate weekday (Monday-Friday only)
@@ -738,6 +833,9 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.7';
     
+    // Show processing message
+    showBookingMessage('Processing your booking request...', 'success');
+    
     // Format date for display
     const formattedDate = new Date(date).toLocaleDateString('en-US', { 
         weekday: 'long', 
@@ -769,10 +867,17 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return;
     }
     
-    // Show loading message
-    showBookingMessage('Processing your booking request...', 'success');
+    // Check if EmailJS is available
+    if (typeof emailjs === 'undefined') {
+        showBookingMessage('Email service not available. Please try again later or contact us directly.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        return;
+    }
     
     // Send booking request via EmailJS (using same template as contact form)
+    console.log('Sending booking request via EmailJS...');
     emailjs.send("service_1u51w01", "template_zj4pg7k", {
         from_name: name,
         from_email: email,
@@ -864,12 +969,24 @@ function showBookingMessage(text, type) {
         return;
     }
     
+    // Clear previous content
+    formMessage.textContent = '';
+    formMessage.className = 'form-message';
+    
+    // Set message content and type
     formMessage.textContent = text;
     formMessage.className = `form-message ${type}`;
-    formMessage.style.display = 'block'; // Ensure it's visible
+    formMessage.style.display = 'block';
+    formMessage.style.visibility = 'visible';
+    formMessage.style.opacity = '1';
+    
+    // Force reflow to ensure visibility
+    formMessage.offsetHeight;
     
     // Scroll to message
-    formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    setTimeout(() => {
+        formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
     
     console.log('Booking message:', text, type);
     
