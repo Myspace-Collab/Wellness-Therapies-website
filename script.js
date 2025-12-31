@@ -872,9 +872,14 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     const submitBtn = this.querySelector('.submit-btn');
     const formMessage = document.getElementById('bookingFormMessage');
     
+    // Store original button text for error cases (will be used later)
+    let originalText = submitBtn.textContent;
+    
     // Clear previous messages
-    formMessage.textContent = '';
-    formMessage.className = 'form-message';
+    if (formMessage) {
+        formMessage.textContent = '';
+        formMessage.className = 'form-message';
+    }
     
     // Validation
     if (!name || !email || !phone || !therapy || !date || !time) {
@@ -890,49 +895,89 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Date validation - check if date is in the past (STRICT VALIDATION)
-    const selectedDate = new Date(date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    selectedDate.setHours(0, 0, 0, 0);
-    
-    // Check if date is today or in the past
-    if (selectedDate <= today) {
-        showBookingMessage('Please select a future date. Past dates and today are not allowed.', 'error');
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        // Clear the date input
-        this.querySelector('#bookingDate').value = '';
+    if (!date) {
+        showBookingMessage('Please select a date.', 'error');
         return;
     }
     
-    // Note: We don't allow today's date, so no need to check for past times on today
-    
-    // Validate weekday (Monday-Friday only)
-    const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-        showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        // Clear the date input
+    try {
+        const selectedDate = new Date(date + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        // Get minimum allowed date (next available weekday)
+        function getNextAvailableWeekday() {
+            const today = new Date();
+            let nextDate = new Date(today);
+            nextDate.setDate(today.getDate() + 1); // Start from tomorrow
+            
+            // Find next weekday (Monday = 1, Friday = 5)
+            while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+                nextDate.setDate(nextDate.getDate() + 1);
+            }
+            
+            return nextDate;
+        }
+        
+        const minAllowedDate = getNextAvailableWeekday();
+        minAllowedDate.setHours(0, 0, 0, 0);
+        
+        // Check if date is today or in the past
+        if (selectedDate < minAllowedDate) {
+            showBookingMessage('Please select a future weekday. Past dates and today are not allowed.', 'error');
+            // Clear the date input
+            this.querySelector('#bookingDate').value = '';
+            return;
+        }
+        
+        // Validate weekday (Monday-Friday only)
+        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+            showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
+            // Clear the date input
+            this.querySelector('#bookingDate').value = '';
+            return;
+        }
+    } catch (error) {
+        console.error('Error validating date:', error);
+        showBookingMessage('Invalid date selected. Please select a valid future weekday.', 'error');
         this.querySelector('#bookingDate').value = '';
         return;
     }
     
     // Validate time is within business hours (10:00 AM - 3:30 PM)
-    const timeValue = time.split(':');
-    const hours = parseInt(timeValue[0]);
-    const minutes = parseInt(timeValue[1]);
-    const totalMinutes = hours * 60 + minutes;
-    const minMinutes = 10 * 60; // 10:00 AM
-    const maxMinutes = 15 * 60 + 30; // 3:30 PM
+    if (!time) {
+        showBookingMessage('Please select a time.', 'error');
+        return;
+    }
     
-    if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
-        showBookingMessage('Appointments are only available between 10:00 AM and 3:30 PM.', 'error');
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
+    try {
+        const timeValue = time.split(':');
+        if (timeValue.length !== 2) {
+            showBookingMessage('Invalid time format. Please select a time from the dropdown.', 'error');
+            return;
+        }
+        
+        const hours = parseInt(timeValue[0]);
+        const minutes = parseInt(timeValue[1]);
+        
+        if (isNaN(hours) || isNaN(minutes)) {
+            showBookingMessage('Invalid time format. Please select a time from the dropdown.', 'error');
+            return;
+        }
+        
+        const totalMinutes = hours * 60 + minutes;
+        const minMinutes = 10 * 60; // 10:00 AM
+        const maxMinutes = 15 * 60 + 30; // 3:30 PM
+        
+        if (totalMinutes < minMinutes || totalMinutes > maxMinutes) {
+            showBookingMessage('Appointments are only available between 10:00 AM and 3:30 PM.', 'error');
+            return;
+        }
+    } catch (error) {
+        console.error('Error validating time:', error);
+        showBookingMessage('Invalid time selected. Please select a time from the dropdown.', 'error');
         return;
     }
     
@@ -956,7 +1001,7 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     }
     
     // Show loading state
-    const originalText = submitBtn.textContent;
+    originalText = submitBtn.textContent; // Use the variable already declared above
     submitBtn.textContent = 'Booking...';
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.7';
