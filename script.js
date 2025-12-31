@@ -687,17 +687,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMsg = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
             }
             
+            // Set HTML5 validation message for native browser validation
+            bookingDateInput.setCustomValidity(errorMsg);
+            
             // Show error message BEFORE clearing the value
             showBookingMessage(errorMsg, 'error');
             
             // Clear the invalid date after showing message
             setTimeout(() => {
                 bookingDateInput.value = '';
+                bookingDateInput.setCustomValidity('');
             }, 100);
             
             if (bookingTimeSelect) {
                 bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
             }
+        } else if (bookingDateInput.value && isValidDate(bookingDateInput.value)) {
+            // Clear custom validity if date is valid
+            bookingDateInput.setCustomValidity('');
         }
     }
     
@@ -783,7 +790,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.value) {
             enforceValidDate();
         } else {
-            showBookingMessage('Please select a valid future weekday (Monday-Friday).', 'error');
+            const errorMsg = 'Please select a valid future weekday (Monday-Friday).';
+            this.setCustomValidity(errorMsg);
+            showBookingMessage(errorMsg, 'error');
         }
     });
     
@@ -918,9 +927,16 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         formMessage.className = 'form-message';
     }
     
-    // Validation
-    if (!name || !email || !phone || !therapy || !date || !time) {
-        showBookingMessage('Please fill in all required fields.', 'error');
+    // Basic required field validation
+    if (!name) {
+        showBookingMessage('Please enter your name.', 'error');
+        this.querySelector('#bookingName').focus();
+        return;
+    }
+    
+    if (!email) {
+        showBookingMessage('Please enter your email address.', 'error');
+        this.querySelector('#bookingEmail').focus();
         return;
     }
     
@@ -928,60 +944,102 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
         showBookingMessage('Please enter a valid email address.', 'error');
+        this.querySelector('#bookingEmail').focus();
+        return;
+    }
+    
+    if (!phone) {
+        showBookingMessage('Please enter your phone number.', 'error');
+        this.querySelector('#bookingPhone').focus();
+        return;
+    }
+    
+    if (!therapy) {
+        showBookingMessage('Please select a therapy type.', 'error');
+        this.querySelector('#bookingTherapy').focus();
         return;
     }
     
     // Date validation - check if date is in the past (STRICT VALIDATION)
     if (!date) {
         showBookingMessage('Please select a date.', 'error');
+        // Set HTML5 validation message
+        const dateInput = this.querySelector('#bookingDate');
+        dateInput.setCustomValidity('Please select a date.');
+        dateInput.reportValidity();
+        dateInput.focus();
         return;
     }
     
-    try {
-        const selectedDate = new Date(date + 'T00:00:00');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        selectedDate.setHours(0, 0, 0, 0);
-        
-        // Get minimum allowed date (next available weekday)
-        function getNextAvailableWeekday() {
-            const today = new Date();
-            let nextDate = new Date(today);
-            nextDate.setDate(today.getDate() + 1); // Start from tomorrow
-            
-            // Find next weekday (Monday = 1, Friday = 5)
-            while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
-                nextDate.setDate(nextDate.getDate() + 1);
-            }
-            
-            return nextDate;
-        }
-        
-        const minAllowedDate = getNextAvailableWeekday();
-        minAllowedDate.setHours(0, 0, 0, 0);
-        
-        // Check if date is today or in the past
-        if (selectedDate < minAllowedDate) {
-            showBookingMessage('Please select a future weekday. Past dates and today are not allowed.', 'error');
-            // Clear the date input
-            this.querySelector('#bookingDate').value = '';
-            return;
-        }
-        
-        // Validate weekday (Monday-Friday only)
-        const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-            showBookingMessage('Appointments are only available Monday through Friday. Please select a weekday.', 'error');
-            // Clear the date input
-            this.querySelector('#bookingDate').value = '';
-            return;
-        }
-    } catch (error) {
-        console.error('Error validating date:', error);
-        showBookingMessage('Invalid date selected. Please select a valid future weekday.', 'error');
-        this.querySelector('#bookingDate').value = '';
+    if (!time) {
+        showBookingMessage('Please select a time.', 'error');
+        this.querySelector('#bookingTime').focus();
         return;
     }
+    
+    // Get the date input element for validation
+    const dateInput = this.querySelector('#bookingDate');
+    
+    // Use the same validation function as defined in the date restriction code
+    // Get next available weekday function (same as above)
+    function getNextAvailableWeekday() {
+        const today = new Date();
+        let nextDate = new Date(today);
+        nextDate.setDate(today.getDate() + 1); // Start from tomorrow
+        
+        // Find next weekday (Monday = 1, Friday = 5)
+        while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+            nextDate.setDate(nextDate.getDate() + 1);
+        }
+        
+        return nextDate;
+    }
+    
+    // Check if date is valid (future weekday)
+    function isValidDate(dateString) {
+        if (!dateString) return false;
+        
+        const selectedDate = new Date(dateString + 'T00:00:00');
+        const minAllowed = getNextAvailableWeekday();
+        minAllowed.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = selectedDate.getDay();
+        
+        // Must be future date and weekday
+        return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
+    }
+    
+    // Validate the date
+    if (!isValidDate(date)) {
+        const selectedDate = new Date(date + 'T00:00:00');
+        const minAllowed = getNextAvailableWeekday();
+        minAllowed.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        const dayOfWeek = selectedDate.getDay();
+        
+        let errorMessage = '';
+        if (selectedDate < minAllowed) {
+            errorMessage = 'Past dates and today are not allowed. Please select a future weekday (Monday-Friday).';
+        } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+            errorMessage = 'Weekends are not allowed. Please select a weekday (Monday-Friday).';
+        } else {
+            errorMessage = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
+        }
+        
+        // Show error message
+        showBookingMessage(errorMessage, 'error');
+        
+        // Set HTML5 validation message for native browser validation
+        dateInput.setCustomValidity(errorMessage);
+        dateInput.reportValidity();
+        
+        // Clear the date input
+        dateInput.value = '';
+        return;
+    }
+    
+    // Clear any custom validity if date is valid
+    dateInput.setCustomValidity('');
     
     // Validate time is within business hours (10:00 AM - 3:30 PM)
     if (!time) {
