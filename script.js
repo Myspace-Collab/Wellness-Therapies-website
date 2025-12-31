@@ -334,16 +334,16 @@ function typeWriter(element, text, speed = 100) {
     type();
 }
 
-// Initialize typing effect when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    const heroTitle = document.querySelector('.hero h1');
-    if (heroTitle) {
-        const originalText = heroTitle.textContent;
-        setTimeout(() => {
-            typeWriter(heroTitle, originalText, 50);
-        }, 500);
-    }
-});
+// Initialize typing effect when page loads - DISABLED to prevent duplicate text
+// document.addEventListener('DOMContentLoaded', () => {
+//     const heroTitle = document.querySelector('.hero h1');
+//     if (heroTitle) {
+//         const originalText = heroTitle.textContent;
+//         setTimeout(() => {
+//             typeWriter(heroTitle, originalText, 50);
+//         }, 500);
+//     }
+// });
 
 // Add counter animation for statistics (if needed in future)
 function animateCounter(element, target, duration = 2000) {
@@ -1381,16 +1381,16 @@ function typeWriter(element, text, speed = 100) {
     type();
 }
 
-// Initialize typing effect when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    const heroTitle = document.querySelector('.hero h1');
-    if (heroTitle) {
-        const originalText = heroTitle.textContent;
-        setTimeout(() => {
-            typeWriter(heroTitle, originalText, 50);
-        }, 500);
-    }
-});
+// Initialize typing effect when page loads - DISABLED to prevent duplicate text
+// document.addEventListener('DOMContentLoaded', () => {
+//     const heroTitle = document.querySelector('.hero h1');
+//     if (heroTitle) {
+//         const originalText = heroTitle.textContent;
+//         setTimeout(() => {
+//             typeWriter(heroTitle, originalText, 50);
+//         }, 500);
+//     }
+// });
 
 // Add counter animation for statistics (if needed in future)
 function animateCounter(element, target, duration = 2000) {
