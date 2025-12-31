@@ -157,18 +157,34 @@ function showMessage(text, type) {
 
 // Initialize EmailJS when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('EmailJS available:', typeof emailjs !== 'undefined');
-    if (typeof emailjs !== 'undefined') {
-        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
-        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE') {
-            emailjs.init(emailjsKey);
-        } else {
-            console.warn('EmailJS public key not configured. Please create config.js from config.example.js');
-        }
-        console.log('EmailJS initialized');
-    } else {
-        console.error('EmailJS not loaded! Check if the script tag is correct.');
+    console.log('=== EMAILJS INITIALIZATION ===');
+    console.log('EmailJS library available:', typeof emailjs !== 'undefined');
+    
+    if (typeof emailjs === 'undefined') {
+        console.error('❌ EmailJS library not loaded! Check if the script tag is correct in index.html');
+        window.EMAILJS_INITIALIZED = false;
+        return;
     }
+    
+    // Wait a bit for config.js to load
+    setTimeout(function() {
+        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
+        console.log('EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ')' : 'No');
+        
+        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE' && emailjsKey.length > 0) {
+            try {
+                emailjs.init(emailjsKey);
+                console.log('✅ EmailJS initialized successfully');
+                window.EMAILJS_INITIALIZED = true;
+            } catch (error) {
+                console.error('❌ Error initializing EmailJS:', error);
+                window.EMAILJS_INITIALIZED = false;
+            }
+        } else {
+            console.warn('⚠️ EmailJS public key not configured. Please create config.js from config.example.js and add your EmailJS public key.');
+            window.EMAILJS_INITIALIZED = false;
+        }
+    }, 100); // Small delay to ensure config.js is loaded
 });
 
 // Function to send email notification
@@ -521,18 +537,34 @@ function showMessage(text, type) {
 
 // Initialize EmailJS when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('EmailJS available:', typeof emailjs !== 'undefined');
-    if (typeof emailjs !== 'undefined') {
-        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
-        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE') {
-            emailjs.init(emailjsKey);
-        } else {
-            console.warn('EmailJS public key not configured. Please create config.js from config.example.js');
-        }
-        console.log('EmailJS initialized');
-    } else {
-        console.error('EmailJS not loaded! Check if the script tag is correct.');
+    console.log('=== EMAILJS INITIALIZATION ===');
+    console.log('EmailJS library available:', typeof emailjs !== 'undefined');
+    
+    if (typeof emailjs === 'undefined') {
+        console.error('❌ EmailJS library not loaded! Check if the script tag is correct in index.html');
+        window.EMAILJS_INITIALIZED = false;
+        return;
     }
+    
+    // Wait a bit for config.js to load
+    setTimeout(function() {
+        const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
+        console.log('EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ')' : 'No');
+        
+        if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE' && emailjsKey.length > 0) {
+            try {
+                emailjs.init(emailjsKey);
+                console.log('✅ EmailJS initialized successfully');
+                window.EMAILJS_INITIALIZED = true;
+            } catch (error) {
+                console.error('❌ Error initializing EmailJS:', error);
+                window.EMAILJS_INITIALIZED = false;
+            }
+        } else {
+            console.warn('⚠️ EmailJS public key not configured. Please create config.js from config.example.js and add your EmailJS public key.');
+            window.EMAILJS_INITIALIZED = false;
+        }
+    }, 100); // Small delay to ensure config.js is loaded
 });
 
 // Function to send email notification
@@ -980,18 +1012,19 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     
     // Check if EmailJS is initialized
     const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
-    if (!emailjsKey || emailjsKey === 'YOUR_EMAILJS_PUBLIC_KEY_HERE' || !window.EMAILJS_INITIALIZED) {
-        console.error('❌ EmailJS not properly initialized!');
-        console.error('Public Key:', emailjsKey || 'MISSING');
-        showBookingMessage('Email service not properly configured. Please check your config.js file.', 'error');
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        return;
-    }
     
-    // Try to initialize if not already done
+    // If not initialized, try to initialize now
     if (!window.EMAILJS_INITIALIZED) {
+        if (!emailjsKey || emailjsKey === 'YOUR_EMAILJS_PUBLIC_KEY_HERE' || emailjsKey.length === 0) {
+            console.error('❌ EmailJS public key not configured!');
+            console.error('Public Key:', emailjsKey || 'MISSING');
+            showBookingMessage('Email service not properly configured. Please check your config.js file and ensure EMAILJS_PUBLIC_KEY is set.', 'error');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+            return;
+        }
+        
         try {
             emailjs.init(emailjsKey);
             window.EMAILJS_INITIALIZED = true;
@@ -1004,6 +1037,16 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             submitBtn.style.opacity = '1';
             return;
         }
+    }
+    
+    // Double-check initialization
+    if (!window.EMAILJS_INITIALIZED) {
+        console.error('❌ EmailJS still not initialized after attempt!');
+        showBookingMessage('Email service initialization failed. Please refresh the page and try again.', 'error');
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        return;
     }
     
     // Send booking request via EmailJS (using same template as contact form)
