@@ -678,9 +678,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to enforce valid date - clears if invalid
     function enforceValidDate() {
         if (bookingDateInput.value && !isValidDate(bookingDateInput.value)) {
+            const selectedDate = new Date(bookingDateInput.value + 'T00:00:00');
+            const minAllowed = getNextAvailableWeekday();
+            minAllowed.setHours(0, 0, 0, 0);
+            selectedDate.setHours(0, 0, 0, 0);
+            const dayOfWeek = selectedDate.getDay();
+            
             console.warn('Invalid date detected, clearing:', bookingDateInput.value);
-            bookingDateInput.value = '';
-            showBookingMessage('Past dates and weekends are not allowed. Please select a future weekday.', 'error');
+            
+            // Show appropriate error message IMMEDIATELY
+            let errorMsg = '';
+            if (selectedDate < minAllowed) {
+                errorMsg = 'Past dates and today are not allowed. Please select a future weekday (Monday-Friday).';
+            } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+                errorMsg = 'Weekends are not allowed. Please select a weekday (Monday-Friday).';
+            } else {
+                errorMsg = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
+            }
+            
+            // Show error message BEFORE clearing the value
+            showBookingMessage(errorMsg, 'error');
+            
+            // Clear the invalid date after showing message
+            setTimeout(() => {
+                bookingDateInput.value = '';
+            }, 100);
+            
             if (bookingTimeSelect) {
                 bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
             }
@@ -753,11 +776,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.setAttribute('min', currentMin);
             }
             
-            // Validate current value
+            // Validate current value immediately
             if (this.value) {
-                enforceValidDate();
+                // Small delay to ensure value is set before validation
+                setTimeout(() => {
+                    enforceValidDate();
+                }, 10);
             }
         }, true);
+    });
+    
+    // Also validate on invalid event (HTML5 validation)
+    bookingDateInput.addEventListener('invalid', function(e) {
+        e.preventDefault();
+        if (this.value) {
+            enforceValidDate();
+        } else {
+            showBookingMessage('Please select a valid future weekday (Monday-Friday).', 'error');
+        }
     });
     
     // Watch for value changes using MutationObserver
@@ -776,8 +812,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 bookingDateInput.min = currentMin;
                 bookingDateInput.setAttribute('min', currentMin);
                 
-                // Validate
+                // Validate immediately when value changes
                 enforceValidDate();
+            } else {
+                // Clear error message when date is cleared
+                const formMessage = document.getElementById('bookingFormMessage');
+                if (formMessage && formMessage.classList.contains('error')) {
+                    formMessage.textContent = '';
+                    formMessage.className = 'form-message';
+                }
             }
         }
     }, 100); // Check every 100ms
@@ -792,7 +835,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (newValue && !isValidDate(newValue)) {
                 console.warn('Blocked attempt to set invalid date:', newValue);
                 originalDescriptor.set.call(this, '');
-                enforceValidDate();
+                // Show error message immediately
+                setTimeout(() => {
+                    enforceValidDate();
+                }, 0);
                 return;
             }
             originalDescriptor.set.call(this, newValue);
@@ -1124,7 +1170,7 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         console.log('Full response:', response);
         
         // Show success message immediately after notification email is sent
-        showBookingMessage('✅ Thanks for your booking! We have received your appointment request and will send you a confirmation email shortly.', 'success');
+        showBookingMessage('✅ Appointment booked successfully! We have received your appointment request and will send you a confirmation email shortly.', 'success');
         
         // Reset button state
         submitBtn.textContent = originalText;
@@ -1169,12 +1215,12 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         }).then(function (response) {
             console.log('✅ Confirmation email sent to customer!', response.status);
             // Update message to indicate confirmation email was sent
-            showBookingMessage('✅ Thanks for your booking! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your appointment.', 'success');
+            showBookingMessage('✅ Appointment booked successfully! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your appointment.', 'success');
         }, function (error) {
             console.log('⚠️ Confirmation email failed, but booking notification sent:', error);
             console.error('Confirmation email error details:', error);
             // Keep the success message since the booking notification was sent
-            showBookingMessage('✅ Thanks for your booking! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
+            showBookingMessage('✅ Appointment booked successfully! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
         });
         
         // Reset form after successful booking
