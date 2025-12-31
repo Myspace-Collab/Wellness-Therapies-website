@@ -1424,20 +1424,4 @@ window.addEventListener('load', () => {
     document.body.classList.add('loaded');
 });
 
-// Add CSS for loading animation
-const style = document.createElement('style');
-style.textContent = `
-    body {
-        opacity: 0;
-        transition: opacity 0.5s ease;
-    }
-    
-    body.loaded {
-        opacity: 1;
-    }
-    
-    .therapy-card.active {
-        transform: translateY(-10px) !important;
-    }
-`;
-document.head.appendChild(style);
+// Duplicate CSS block removed - already defined above
