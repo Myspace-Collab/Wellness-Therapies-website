@@ -115,3 +115,4 @@
 ✅ Appointment register  
 ⏳ Google Calendar sync (ready to setup)
 
+

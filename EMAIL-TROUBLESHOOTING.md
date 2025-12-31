@@ -124,3 +124,4 @@ If emails are not being sent or received, follow these steps:
 - [ ] Browser console shows `✅ EmailJS initialized successfully`
 - [ ] No errors in browser console when submitting form
 
+

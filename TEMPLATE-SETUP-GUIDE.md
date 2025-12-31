@@ -121,3 +121,4 @@ The code will send the appropriate message content based on whether it's a conta
 2. Test booking form - should receive notification with booking details
 3. Both should use the same templates but with different content
 
+
