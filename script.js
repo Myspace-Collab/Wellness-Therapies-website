@@ -693,11 +693,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show error message BEFORE clearing the value
             showBookingMessage(errorMsg, 'error');
             
-            // Clear the invalid date after showing message
+            // Report validity to show browser tooltip
+            setTimeout(() => {
+                bookingDateInput.reportValidity();
+            }, 50);
+            
+            // Clear the invalid date after showing message (give user time to see it)
             setTimeout(() => {
                 bookingDateInput.value = '';
                 bookingDateInput.setCustomValidity('');
-            }, 100);
+            }, 3000); // Keep date visible for 3 seconds so user can see the error
             
             if (bookingTimeSelect) {
                 bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
@@ -780,6 +785,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     enforceValidDate();
                 }, 10);
+            } else {
+                // Clear error message when date is cleared
+                const formMessage = document.getElementById('bookingFormMessage');
+                if (formMessage && formMessage.classList.contains('error')) {
+                    formMessage.textContent = '';
+                    formMessage.className = 'form-message';
+                }
             }
         }, true);
     });
@@ -918,6 +930,12 @@ document.getElementById('bookingForm').addEventListener('submit', async function
     const submitBtn = this.querySelector('.submit-btn');
     const formMessage = document.getElementById('bookingFormMessage');
     
+    // Clear any previous error messages first
+    if (formMessage) {
+        formMessage.textContent = '';
+        formMessage.className = 'form-message';
+    }
+    
     // Store original button text for error cases (will be used later)
     let originalText = submitBtn.textContent;
     
@@ -1009,7 +1027,7 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
     }
     
-    // Validate the date
+    // Validate the date - CRITICAL: Must validate before clearing
     if (!isValidDate(date)) {
         const selectedDate = new Date(date + 'T00:00:00');
         const minAllowed = getNextAvailableWeekday();
@@ -1026,15 +1044,26 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             errorMessage = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
         }
         
-        // Show error message
+        // CRITICAL: Show error message FIRST before clearing
         showBookingMessage(errorMessage, 'error');
         
         // Set HTML5 validation message for native browser validation
         dateInput.setCustomValidity(errorMessage);
-        dateInput.reportValidity();
         
-        // Clear the date input
-        dateInput.value = '';
+        // Force the validation message to show
+        setTimeout(() => {
+            dateInput.reportValidity();
+        }, 100);
+        
+        // Focus on the date input to highlight the error
+        dateInput.focus();
+        
+        // Clear the date input AFTER showing the error
+        setTimeout(() => {
+            dateInput.value = '';
+            dateInput.setCustomValidity('');
+        }, 2000); // Keep the date visible for 2 seconds so user can see the error
+        
         return;
     }
     
