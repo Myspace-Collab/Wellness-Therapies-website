@@ -1017,16 +1017,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const dateInput = this.querySelector('#bookingDate');
     
     if (!date) {
+        // Show error message in form message area
+        showBookingMessage('Please select a date.', 'error');
         // Set HTML5 validation message (same as therapy type validation)
         dateInput.setCustomValidity('Please select a date.');
         dateInput.reportValidity(); // This shows the native browser error
         dateInput.focus();
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
         return;
     }
     
     if (!time) {
         showBookingMessage('Please select a time.', 'error');
         this.querySelector('#bookingTime').focus();
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
         return;
     }
     
@@ -1059,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
     }
     
-    // Validate the date - CRITICAL: Must validate and show HTML5 error like therapy field
+    // Validate the date - CRITICAL: Show error message in form message area
     if (!isValidDate(date)) {
         const selectedDate = new Date(date + 'T00:00:00');
         const minAllowed = getNextAvailableWeekday();
@@ -1067,13 +1077,21 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedDate.setHours(0, 0, 0, 0);
         const dayOfWeek = selectedDate.getDay();
         
-        // Set simple error message like "Invalid date"
-        const errorMessage = 'Invalid date';
+        // Determine specific error message
+        let errorMessage = 'Invalid date';
+        if (selectedDate < minAllowed) {
+            errorMessage = 'Invalid date: Past dates and today are not allowed. Please select a future weekday (Monday-Friday).';
+        } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+            errorMessage = 'Invalid date: Weekends are not allowed. Please select a weekday (Monday-Friday).';
+        }
         
-        // CRITICAL: Set HTML5 validation message (same way as therapy type)
-        dateInput.setCustomValidity(errorMessage);
+        // CRITICAL: Show error message in form message area
+        showBookingMessage(errorMessage, 'error');
         
-        // CRITICAL: Call reportValidity() to show native browser error (like therapy field)
+        // Set HTML5 validation message (same way as therapy type)
+        dateInput.setCustomValidity('Invalid date');
+        
+        // Call reportValidity() to show native browser error (like therapy field)
         dateInput.reportValidity();
         
         // Focus on the date input
@@ -1089,6 +1107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Selected date:', selectedDate);
         console.log('Min allowed:', minAllowed);
         console.log('Day of week:', dayOfWeek);
+        console.log('Error message:', errorMessage);
         
         return; // CRITICAL: Stop form submission
     }
@@ -1328,10 +1347,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // Reset form after successful booking (with delay to show message)
+        // Don't reset too quickly - let user see the success message for at least 5 seconds
         setTimeout(() => {
-            document.getElementById('bookingForm').reset();
-            // Clear the date min/max attributes will be reset by the date restriction code
-        }, 3000); // Wait 3 seconds before resetting so user can see success message
+            const formMessage = document.getElementById('bookingFormMessage');
+            // Only reset if success message is still showing
+            if (formMessage && formMessage.classList.contains('success')) {
+                document.getElementById('bookingForm').reset();
+                // Clear the date min/max attributes will be reset by the date restriction code
+            }
+        }, 5000); // Wait 5 seconds before resetting so user can see success message
         
     }, function (error) {
         console.error('❌ Booking request FAILED...');
@@ -1425,12 +1449,22 @@ function showBookingMessage(text, type) {
     console.log('Message element classes:', formMessage.className);
     console.log('Message element styles:', window.getComputedStyle(formMessage).display);
     
-    // Auto-hide error messages after 8 seconds (but keep success messages)
+    // Auto-hide error messages after 10 seconds (but keep success messages visible longer)
     if (type === 'error') {
         setTimeout(() => {
-            formMessage.textContent = '';
-            formMessage.className = 'form-message';
-        }, 5000);
+            if (formMessage.textContent === text) { // Only clear if message hasn't changed
+                formMessage.textContent = '';
+                formMessage.className = 'form-message';
+            }
+        }, 10000);
+    } else if (type === 'success') {
+        // Keep success messages visible for 15 seconds
+        setTimeout(() => {
+            if (formMessage.textContent === text) { // Only clear if message hasn't changed
+                formMessage.textContent = '';
+                formMessage.className = 'form-message';
+            }
+        }, 15000);
     }
 }
 
