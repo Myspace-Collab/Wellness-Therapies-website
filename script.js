@@ -951,18 +951,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('📋 Form submission started...');
         
         try {
-            // Get form data
+            // Get form data - CRITICAL: Get date value FIRST before any validation clears it
+            const bookingDateInput = this.querySelector('#bookingDate');
+            const date = bookingDateInput ? bookingDateInput.value : '';
             const name = this.querySelector('#bookingName').value.trim();
             const email = this.querySelector('#bookingEmail').value.trim();
             const phone = this.querySelector('#bookingPhone').value.trim();
             const therapy = this.querySelector('#bookingTherapy').value;
-            const date = this.querySelector('#bookingDate').value;
             const time = this.querySelector('#bookingTime').value;
             const message = this.querySelector('#bookingNotes').value.trim();
             const submitBtn = this.querySelector('.submit-btn');
             const formMessage = document.getElementById('bookingFormMessage');
             
             console.log('📋 Form data:', { name, email, phone, therapy, date, time });
+            console.log('📋 Date input value:', bookingDateInput ? bookingDateInput.value : 'dateInput not found');
+            console.log('📋 Date variable:', date);
             
             // Store original button text for error cases (will be used later)
             let originalText = submitBtn ? submitBtn.textContent : 'Book Appointment';
@@ -1014,15 +1017,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Date validation - check if date is in the past (STRICT VALIDATION)
-    const dateInput = this.querySelector('#bookingDate');
+    // Use the dateInput we already got
+    const dateInput = bookingDateInput || this.querySelector('#bookingDate') || document.getElementById('bookingDate');
     
-    if (!date) {
+    console.log('🔍 Date validation check - date value:', date);
+    console.log('🔍 Date input element:', dateInput);
+    console.log('🔍 Date input current value:', dateInput ? dateInput.value : 'N/A');
+    
+    if (!date || date === '') {
         // Show error message in form message area
         showBookingMessage('Please select a date.', 'error');
         // Set HTML5 validation message (same as therapy type validation)
-        dateInput.setCustomValidity('Please select a date.');
-        dateInput.reportValidity(); // This shows the native browser error
-        dateInput.focus();
+        if (dateInput) {
+            dateInput.setCustomValidity('Please select a date.');
+            dateInput.reportValidity(); // This shows the native browser error
+            dateInput.focus();
+        }
         // Reset button state
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -1070,7 +1080,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Validate the date - CRITICAL: Show error message in form message area
-    if (!isValidDate(date)) {
+    console.log('🔍 Validating date:', date);
+    const isValid = isValidDate(date);
+    console.log('🔍 Date validation result:', isValid);
+    
+    if (!isValid) {
         const selectedDate = new Date(date + 'T00:00:00');
         const minAllowed = getNextAvailableWeekday();
         minAllowed.setHours(0, 0, 0, 0);
@@ -1085,7 +1099,15 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage = 'Invalid date: Weekends are not allowed. Please select a weekday (Monday-Friday).';
         }
         
-        // CRITICAL: Show error message in form message area
+        // Log for debugging
+        console.log('❌ Invalid date detected:', date);
+        console.log('Selected date:', selectedDate);
+        console.log('Min allowed:', minAllowed);
+        console.log('Day of week:', dayOfWeek);
+        console.log('Error message:', errorMessage);
+        
+        // CRITICAL: Show error message in form message area FIRST
+        console.log('📢 Calling showBookingMessage with:', errorMessage);
         showBookingMessage(errorMessage, 'error');
         
         // Set HTML5 validation message (same way as therapy type)
@@ -1102,12 +1124,19 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
         
-        // Log for debugging
-        console.log('❌ Invalid date detected:', date);
-        console.log('Selected date:', selectedDate);
-        console.log('Min allowed:', minAllowed);
-        console.log('Day of week:', dayOfWeek);
-        console.log('Error message:', errorMessage);
+        // Force message to be visible
+        setTimeout(() => {
+            const formMessage = document.getElementById('bookingFormMessage');
+            if (formMessage) {
+                console.log('📢 Verifying message is displayed:', formMessage.textContent);
+                console.log('📢 Message classes:', formMessage.className);
+                console.log('📢 Message display:', window.getComputedStyle(formMessage).display);
+                // Force visibility again
+                formMessage.style.display = 'block';
+                formMessage.style.visibility = 'visible';
+                formMessage.style.opacity = '1';
+            }
+        }, 100);
         
         return; // CRITICAL: Stop form submission
     }
@@ -1426,18 +1455,21 @@ function showBookingMessage(text, type) {
     // Clear previous content
     formMessage.textContent = '';
     formMessage.className = 'form-message';
+    formMessage.removeAttribute('style'); // Clear any previous inline styles
     
     // Set message content and type
     formMessage.textContent = text;
     formMessage.className = `form-message ${type}`;
     
-    // Force visibility with inline styles
+    // Force visibility with inline styles (important to override any CSS)
     formMessage.style.display = 'block';
     formMessage.style.visibility = 'visible';
     formMessage.style.opacity = '1';
-    formMessage.style.minHeight = 'auto';
+    formMessage.style.minHeight = '20px';
     formMessage.style.padding = '12px 16px';
     formMessage.style.marginTop = '1rem';
+    formMessage.style.width = '100%';
+    formMessage.style.boxSizing = 'border-box';
     
     // Force reflow to ensure visibility
     void formMessage.offsetHeight;
@@ -1447,7 +1479,10 @@ function showBookingMessage(text, type) {
     
     console.log('✅ Booking message displayed:', text, 'Type:', type);
     console.log('Message element classes:', formMessage.className);
-    console.log('Message element styles:', window.getComputedStyle(formMessage).display);
+    console.log('Message element text:', formMessage.textContent);
+    console.log('Message element display:', window.getComputedStyle(formMessage).display);
+    console.log('Message element visibility:', window.getComputedStyle(formMessage).visibility);
+    console.log('Message element opacity:', window.getComputedStyle(formMessage).opacity);
     
     // Auto-hide error messages after 10 seconds (but keep success messages visible longer)
     if (type === 'error') {
