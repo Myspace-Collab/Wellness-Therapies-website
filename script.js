@@ -677,6 +677,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.warn('Invalid date detected, clearing:', bookingDateInput.value);
             
+            // Add error class for red styling
+            bookingDateInput.classList.add('date-invalid');
+            
             // Show appropriate error message IMMEDIATELY
             let errorMsg = '';
             if (selectedDate < minAllowed) {
@@ -702,6 +705,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 bookingDateInput.value = '';
                 bookingDateInput.setCustomValidity('');
+                bookingDateInput.classList.remove('date-invalid'); // Remove error class when cleared
             }, 3000); // Keep date visible for 3 seconds so user can see the error
             
             if (bookingTimeSelect) {
@@ -710,6 +714,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (bookingDateInput.value && isValidDate(bookingDateInput.value)) {
             // Clear custom validity if date is valid
             bookingDateInput.setCustomValidity('');
+            bookingDateInput.classList.remove('date-invalid'); // Remove error class when valid
+        } else if (!bookingDateInput.value) {
+            // Remove error class when field is empty
+            bookingDateInput.classList.remove('date-invalid');
         }
     }
     
@@ -721,6 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
     bookingDateInput.min = minDateString;
     bookingDateInput.setAttribute('min', minDateString);
     bookingDateInput.value = ''; // Clear any existing value
+    bookingDateInput.classList.remove('date-invalid'); // Remove error class on initialization
     
     // Set max date
     const maxDate = new Date();

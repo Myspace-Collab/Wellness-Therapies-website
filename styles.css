@@ -541,7 +541,9 @@ body {
     cursor: pointer;
 }
 
-.booking-form input[type="date"]:invalid:not(:focus):not(:placeholder-shown) {
+/* Only show red border when date field has an invalid value (not when empty) */
+/* JavaScript will add 'date-invalid' class when validation fails */
+.booking-form input[type="date"].date-invalid:not(:focus) {
     border-color: #f8d7da;
     background-color: #fff5f5;
 }
@@ -686,7 +688,9 @@ body {
     cursor: pointer;
 }
 
-.booking-form input[type="date"]:invalid:not(:focus):not(:placeholder-shown) {
+/* Only show red border when date field has an invalid value (not when empty) */
+/* JavaScript will add 'date-invalid' class when validation fails */
+.booking-form input[type="date"].date-invalid:not(:focus) {
     border-color: #f8d7da;
     background-color: #fff5f5;
 }
