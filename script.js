@@ -259,6 +259,20 @@ function sendEmailNotification(name, email, therapy, message) {
         console.log('Error details:', error);
         showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
     });
+
+// Booking Form Functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum date to today
+    const bookingDateInput = document.getElementById('bookingDate');
+    if (bookingDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        bookingDateInput.setAttribute('min', today);
+    }
+});
+
+// NOTE: Booking form submission handler is defined later in the file (around line 1092)
+// This duplicate handler has been removed to prevent conflicts
+
     // Example using EmailJS (you would need to set up an account and get API keys)
     // emailjs.send('your_service_id', 'your_template_id', {
     //     from_name: name,
@@ -1351,7 +1365,16 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Full response:', response);
         
         // Show success message immediately after notification email is sent
+        console.log('📢 Showing success message after booking notification sent');
         showBookingMessage('✅ Appointment booked successfully! We have received your appointment request and will send you a confirmation email shortly.', 'success');
+        
+        // Ensure message is visible by scrolling to it
+        setTimeout(() => {
+            const formMessage = document.getElementById('bookingFormMessage');
+            if (formMessage) {
+                formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
         
         // Reset button state
         submitBtn.textContent = originalText;
@@ -1396,12 +1419,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then(function (response) {
             console.log('✅ Confirmation email sent to customer!', response.status);
             // Update message to indicate confirmation email was sent
-            showBookingMessage('✅ Appointment booked successfully! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your appointment.', 'success');
+            const successMsg = '✅ Appointment booked successfully! A confirmation email has been sent to ' + email + '. We will contact you shortly to confirm your appointment.';
+            console.log('📢 Showing final success message:', successMsg);
+            showBookingMessage(successMsg, 'success');
+            
+            // Ensure message is visible
+            setTimeout(() => {
+                const formMessage = document.getElementById('bookingFormMessage');
+                if (formMessage) {
+                    formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
         }, function (error) {
             console.log('⚠️ Confirmation email failed, but booking notification sent:', error);
             console.error('Confirmation email error details:', error);
             // Keep the success message since the booking notification was sent
-            showBookingMessage('✅ Appointment booked successfully! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
+            const successMsg = '✅ Appointment booked successfully! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)';
+            console.log('📢 Showing success message (confirmation email failed):', successMsg);
+            showBookingMessage(successMsg, 'success');
+            
+            // Ensure message is visible
+            setTimeout(() => {
+                const formMessage = document.getElementById('bookingFormMessage');
+                if (formMessage) {
+                    formMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
         });
         
         // Reset form after successful booking (with delay to show message)
