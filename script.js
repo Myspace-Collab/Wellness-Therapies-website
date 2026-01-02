@@ -1490,19 +1490,40 @@ document.addEventListener('DOMContentLoaded', function() {
         
     }, function (error) {
         console.error('❌ Booking request FAILED...');
-        console.error('Error object:', error);
+        console.error('Full error object:', JSON.stringify(error, null, 2));
+        console.error('Error type:', typeof error);
         console.error('Error status:', error.status);
         console.error('Error text:', error.text);
         console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
         
+        // More detailed error handling
         let errorMessage = 'Sorry, there was an error submitting your booking request. ';
+        
+        if (error.status) {
+            console.error('HTTP Status Code:', error.status);
+            if (error.status === 400) {
+                errorMessage += 'Invalid request. Please check all fields are filled correctly. ';
+            } else if (error.status === 401) {
+                errorMessage += 'Authentication failed. Please check your EmailJS public key. ';
+            } else if (error.status === 404) {
+                errorMessage += 'Service or template not found. Please check your EmailJS configuration. ';
+            } else if (error.status === 429) {
+                errorMessage += 'Too many requests. Please wait a moment and try again. ';
+            } else if (error.status >= 500) {
+                errorMessage += 'Email service error. Please try again later. ';
+            }
+        }
+        
         if (error.text) {
-            errorMessage += 'Error: ' + error.text;
+            errorMessage += 'Details: ' + error.text;
+            console.error('Error text content:', error.text);
         } else if (error.message) {
-            errorMessage += 'Error: ' + error.message;
+            errorMessage += 'Details: ' + error.message;
         } else {
             errorMessage += 'Please check your EmailJS configuration and try again.';
         }
+        
         errorMessage += ' If the problem persists, please contact us directly.';
         
         showBookingMessage(errorMessage, 'error');
@@ -1514,6 +1535,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).catch(function(error) {
         // This catch handles any errors in the emailjs.send promise chain
         console.error('❌ Error in emailjs.send promise chain:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
         showBookingMessage('An error occurred while sending your booking request. Please try again or contact us directly.', 'error');
         if (submitBtn) {
             submitBtn.textContent = originalText;
