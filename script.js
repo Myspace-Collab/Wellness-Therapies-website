@@ -982,109 +982,124 @@ document.addEventListener('DOMContentLoaded', function() {
                 showBookingMessage('Form error: Submit button not found. Please refresh the page.', 'error');
                 return;
             }
-    
-    // Basic required field validation
-    if (!name) {
-        showBookingMessage('Please enter your name.', 'error');
-        this.querySelector('#bookingName').focus();
-        return;
-    }
-    
-    if (!email) {
-        showBookingMessage('Please enter your email address.', 'error');
-        this.querySelector('#bookingEmail').focus();
-        return;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showBookingMessage('Please enter a valid email address.', 'error');
-        this.querySelector('#bookingEmail').focus();
-        return;
-    }
-    
-    if (!phone) {
-        showBookingMessage('Please enter your phone number.', 'error');
-        this.querySelector('#bookingPhone').focus();
-        return;
-    }
-    
-    if (!therapy) {
-        showBookingMessage('Please select a therapy type.', 'error');
-        this.querySelector('#bookingTherapy').focus();
-        return;
-    }
-    
-    // Date validation - check if date is in the past (STRICT VALIDATION)
-    // Use the dateInput we already got
-    const dateInput = bookingDateInput || this.querySelector('#bookingDate') || document.getElementById('bookingDate');
-    
-    console.log('🔍 Date validation check - date value:', date);
-    console.log('🔍 Date input element:', dateInput);
-    console.log('🔍 Date input current value:', dateInput ? dateInput.value : 'N/A');
-    
-    if (!date || date === '') {
-        // Show error message in form message area
-        showBookingMessage('Please select a date.', 'error');
-        // Set HTML5 validation message (same as therapy type validation)
-        if (dateInput) {
-            dateInput.setCustomValidity('Please select a date.');
-            dateInput.reportValidity(); // This shows the native browser error
-            dateInput.focus();
-        }
-        // Reset button state
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        return;
-    }
-    
-    if (!time) {
-        showBookingMessage('Please select a time.', 'error');
-        this.querySelector('#bookingTime').focus();
-        // Reset button state
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        return;
-    }
-    
-    // Use the same validation function as defined in the date restriction code
-    // Get next available weekday function (same as above)
-    function getNextAvailableWeekday() {
-        const today = new Date();
-        let nextDate = new Date(today);
-        nextDate.setDate(today.getDate() + 1); // Start from tomorrow
-        
-        // Find next weekday (Monday = 1, Friday = 5)
-        while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
-            nextDate.setDate(nextDate.getDate() + 1);
-        }
-        
-        return nextDate;
-    }
-    
-    // Check if date is valid (future weekday)
-    function isValidDate(dateString) {
-        if (!dateString) return false;
-        
-        const selectedDate = new Date(dateString + 'T00:00:00');
-        const minAllowed = getNextAvailableWeekday();
-        minAllowed.setHours(0, 0, 0, 0);
-        selectedDate.setHours(0, 0, 0, 0);
-        const dayOfWeek = selectedDate.getDay();
-        
-        // Must be future date and weekday
-        return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
-    }
-    
-    // Validate the date - CRITICAL: Show error message in form message area
-    console.log('🔍 Validating date:', date);
-    const isValid = isValidDate(date);
-    console.log('🔍 Date validation result:', isValid);
-    
-    if (!isValid) {
+            
+            // Basic required field validation
+            if (!name) {
+                showBookingMessage('Please enter your name.', 'error');
+                this.querySelector('#bookingName').focus();
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            if (!email) {
+                showBookingMessage('Please enter your email address.', 'error');
+                this.querySelector('#bookingEmail').focus();
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showBookingMessage('Please enter a valid email address.', 'error');
+                this.querySelector('#bookingEmail').focus();
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            if (!phone) {
+                showBookingMessage('Please enter your phone number.', 'error');
+                this.querySelector('#bookingPhone').focus();
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            if (!therapy) {
+                showBookingMessage('Please select a therapy type.', 'error');
+                this.querySelector('#bookingTherapy').focus();
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            // Date validation - check if date is in the past (STRICT VALIDATION)
+            // Use the dateInput we already got
+            const dateInput = bookingDateInput || this.querySelector('#bookingDate') || document.getElementById('bookingDate');
+            
+            console.log('🔍 Date validation check - date value:', date);
+            console.log('🔍 Date input element:', dateInput);
+            console.log('🔍 Date input current value:', dateInput ? dateInput.value : 'N/A');
+            
+            if (!date || date === '') {
+                // Show error message in form message area
+                showBookingMessage('Please select a date.', 'error');
+                // Set HTML5 validation message (same as therapy type validation)
+                if (dateInput) {
+                    dateInput.setCustomValidity('Please select a date.');
+                    dateInput.reportValidity(); // This shows the native browser error
+                    dateInput.focus();
+                }
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            if (!time) {
+                showBookingMessage('Please select a time.', 'error');
+                this.querySelector('#bookingTime').focus();
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                return;
+            }
+            
+            // Use the same validation function as defined in the date restriction code
+            // Get next available weekday function (same as above)
+            function getNextAvailableWeekday() {
+                const today = new Date();
+                let nextDate = new Date(today);
+                nextDate.setDate(today.getDate() + 1); // Start from tomorrow
+                
+                // Find next weekday (Monday = 1, Friday = 5)
+                while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+                    nextDate.setDate(nextDate.getDate() + 1);
+                }
+                
+                return nextDate;
+            }
+            
+            // Check if date is valid (future weekday)
+            function isValidDate(dateString) {
+                if (!dateString) return false;
+                
+                const selectedDate = new Date(dateString + 'T00:00:00');
+                const minAllowed = getNextAvailableWeekday();
+                minAllowed.setHours(0, 0, 0, 0);
+                selectedDate.setHours(0, 0, 0, 0);
+                const dayOfWeek = selectedDate.getDay();
+                
+                // Must be future date and weekday
+                return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
+            }
+            
+            // Validate the date - CRITICAL: Show error message in form message area
+            console.log('🔍 Validating date:', date);
+            const isValid = isValidDate(date);
+            console.log('🔍 Date validation result:', isValid);
+            
+            if (!isValid) {
         const selectedDate = new Date(date + 'T00:00:00');
         const minAllowed = getNextAvailableWeekday();
         minAllowed.setHours(0, 0, 0, 0);
@@ -1124,21 +1139,35 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
         
-        // Force message to be visible
-        setTimeout(() => {
-            const formMessage = document.getElementById('bookingFormMessage');
-            if (formMessage) {
-                console.log('📢 Verifying message is displayed:', formMessage.textContent);
-                console.log('📢 Message classes:', formMessage.className);
-                console.log('📢 Message display:', window.getComputedStyle(formMessage).display);
-                // Force visibility again
-                formMessage.style.display = 'block';
-                formMessage.style.visibility = 'visible';
-                formMessage.style.opacity = '1';
-            }
-        }, 100);
+        // Force message to be visible immediately
+        const formMessage = document.getElementById('bookingFormMessage');
+        if (formMessage) {
+            console.log('📢 Verifying message is displayed:', formMessage.textContent);
+            console.log('📢 Message classes:', formMessage.className);
+            console.log('📢 Message display:', window.getComputedStyle(formMessage).display);
+            // Force visibility again
+            formMessage.style.display = 'block';
+            formMessage.style.visibility = 'visible';
+            formMessage.style.opacity = '1';
+            
+            // Prevent scroll to top - scroll to message instead
+            setTimeout(() => {
+                formMessage.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+                // Prevent any default scroll behavior
+                window.scrollTo({ top: window.scrollY, behavior: 'auto' });
+            }, 50);
+        }
         
-        return; // CRITICAL: Stop form submission
+        // CRITICAL: Stop form submission - prevent any default behavior
+        console.log('🛑 Stopping form submission due to invalid date');
+        // Explicitly prevent default and stop propagation again
+        if (e && e.preventDefault) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation(); // Stop any other handlers
+        }
+        // CRITICAL: Return early to stop all further execution
+        return; // Stop here - don't continue with form submission
     }
     
     // Clear any custom validity if date is valid
