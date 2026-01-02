@@ -778,7 +778,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // CRITICAL: Validate on EVERY possible event
-    const validateEvents = ['change', 'input', 'blur', 'focus', 'click'];
+    const validateEvents = ['change', 'input', 'blur'];
     validateEvents.forEach(eventType => {
         bookingDateInput.addEventListener(eventType, function() {
             // Always ensure min is set
@@ -792,10 +792,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.value) {
                 // Small delay to ensure value is set before validation
                 setTimeout(() => {
-                    enforceValidDate();
+                    // Check if date is valid
+                    if (!isValidDate(this.value)) {
+                        // Set HTML5 validation error (same as therapy field)
+                        this.setCustomValidity('Invalid date');
+                        this.reportValidity(); // Show native browser error
+                        this.classList.add('date-invalid');
+                    } else {
+                        // Clear validation error if valid
+                        this.setCustomValidity('');
+                        this.classList.remove('date-invalid');
+                    }
                 }, 10);
             } else {
-                // Clear error message when date is cleared
+                // Clear error when date is cleared
+                this.setCustomValidity('');
+                this.classList.remove('date-invalid');
                 const formMessage = document.getElementById('bookingFormMessage');
                 if (formMessage && formMessage.classList.contains('error')) {
                     formMessage.textContent = '';
@@ -1002,12 +1014,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Date validation - check if date is in the past (STRICT VALIDATION)
+    const dateInput = this.querySelector('#bookingDate');
+    
     if (!date) {
-        showBookingMessage('Please select a date.', 'error');
-        // Set HTML5 validation message
-        const dateInput = this.querySelector('#bookingDate');
+        // Set HTML5 validation message (same as therapy type validation)
         dateInput.setCustomValidity('Please select a date.');
-        dateInput.reportValidity();
+        dateInput.reportValidity(); // This shows the native browser error
         dateInput.focus();
         return;
     }
@@ -1017,9 +1029,6 @@ document.addEventListener('DOMContentLoaded', function() {
         this.querySelector('#bookingTime').focus();
         return;
     }
-    
-    // Get the date input element for validation
-    const dateInput = this.querySelector('#bookingDate');
     
     // Use the same validation function as defined in the date restriction code
     // Get next available weekday function (same as above)
@@ -1050,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return selectedDate >= minAllowed && dayOfWeek !== 0 && dayOfWeek !== 6;
     }
     
-    // Validate the date - CRITICAL: Must validate before clearing
+    // Validate the date - CRITICAL: Must validate and show HTML5 error like therapy field
     if (!isValidDate(date)) {
         const selectedDate = new Date(date + 'T00:00:00');
         const minAllowed = getNextAvailableWeekday();
@@ -1058,28 +1067,16 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedDate.setHours(0, 0, 0, 0);
         const dayOfWeek = selectedDate.getDay();
         
-        let errorMessage = '';
-        if (selectedDate < minAllowed) {
-            errorMessage = 'Past dates and today are not allowed. Please select a future weekday (Monday-Friday).';
-        } else if (dayOfWeek === 0 || dayOfWeek === 6) {
-            errorMessage = 'Weekends are not allowed. Please select a weekday (Monday-Friday).';
-        } else {
-            errorMessage = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
-        }
+        // Set simple error message like "Invalid date"
+        const errorMessage = 'Invalid date';
         
-        // CRITICAL: Show error message FIRST - don't clear date immediately
-        console.log('❌ Invalid date detected:', date, 'Error:', errorMessage);
-        showBookingMessage(errorMessage, 'error');
-        
-        // Set HTML5 validation message for native browser validation
+        // CRITICAL: Set HTML5 validation message (same way as therapy type)
         dateInput.setCustomValidity(errorMessage);
         
-        // Force the validation message to show
-        setTimeout(() => {
-            dateInput.reportValidity();
-        }, 100);
+        // CRITICAL: Call reportValidity() to show native browser error (like therapy field)
+        dateInput.reportValidity();
         
-        // Focus on the date input to highlight the error
+        // Focus on the date input
         dateInput.focus();
         
         // Reset button state
@@ -1087,11 +1084,11 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
         
-        // DON'T clear the date immediately - let user see what they entered
-        // Only clear custom validity after a delay
-        setTimeout(() => {
-            dateInput.setCustomValidity('');
-        }, 5000); // Clear validation message after 5 seconds
+        // Log for debugging
+        console.log('❌ Invalid date detected:', date);
+        console.log('Selected date:', selectedDate);
+        console.log('Min allowed:', minAllowed);
+        console.log('Day of week:', dayOfWeek);
         
         return; // CRITICAL: Stop form submission
     }
