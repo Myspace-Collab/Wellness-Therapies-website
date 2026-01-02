@@ -913,37 +913,51 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // NOTE: All date restrictions are handled in the new implementation above (lines 636-813)
     // The validateDate function above is used for form submission validation
-});
-
-// Booking form submission
-document.getElementById('bookingForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
     
-    // Get form data
-    const name = this.querySelector('#bookingName').value.trim();
-    const email = this.querySelector('#bookingEmail').value.trim();
-    const phone = this.querySelector('#bookingPhone').value.trim();
-    const therapy = this.querySelector('#bookingTherapy').value;
-    const date = this.querySelector('#bookingDate').value;
-    const time = this.querySelector('#bookingTime').value;
-    const message = this.querySelector('#bookingNotes').value.trim();
-    const submitBtn = this.querySelector('.submit-btn');
-    const formMessage = document.getElementById('bookingFormMessage');
-    
-    // Clear any previous error messages first
-    if (formMessage) {
-        formMessage.textContent = '';
-        formMessage.className = 'form-message';
+    // Booking form submission - attach inside DOMContentLoaded to ensure form exists
+    const bookingForm = document.getElementById('bookingForm');
+    if (!bookingForm) {
+        console.error('❌ Booking form not found! Cannot attach submit handler.');
+        return;
     }
     
-    // Store original button text for error cases (will be used later)
-    let originalText = submitBtn.textContent;
+    console.log('✅ Booking form found, attaching submit handler...');
     
-    // Clear previous messages
-    if (formMessage) {
-        formMessage.textContent = '';
-        formMessage.className = 'form-message';
-    }
+    bookingForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        console.log('📋 Form submission started...');
+        
+        try {
+            // Get form data
+            const name = this.querySelector('#bookingName').value.trim();
+            const email = this.querySelector('#bookingEmail').value.trim();
+            const phone = this.querySelector('#bookingPhone').value.trim();
+            const therapy = this.querySelector('#bookingTherapy').value;
+            const date = this.querySelector('#bookingDate').value;
+            const time = this.querySelector('#bookingTime').value;
+            const message = this.querySelector('#bookingNotes').value.trim();
+            const submitBtn = this.querySelector('.submit-btn');
+            const formMessage = document.getElementById('bookingFormMessage');
+            
+            console.log('📋 Form data:', { name, email, phone, therapy, date, time });
+            
+            // Store original button text for error cases (will be used later)
+            let originalText = submitBtn ? submitBtn.textContent : 'Book Appointment';
+            
+            // Clear previous messages
+            if (formMessage) {
+                formMessage.textContent = '';
+                formMessage.className = 'form-message';
+            }
+            
+            // Validate submitBtn exists
+            if (!submitBtn) {
+                console.error('❌ Submit button not found!');
+                showBookingMessage('Form error: Submit button not found. Please refresh the page.', 'error');
+                return;
+            }
     
     // Basic required field validation
     if (!name) {
@@ -1044,7 +1058,8 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             errorMessage = 'Invalid date selected. Please select a future weekday (Monday-Friday).';
         }
         
-        // CRITICAL: Show error message FIRST before clearing
+        // CRITICAL: Show error message FIRST - don't clear date immediately
+        console.log('❌ Invalid date detected:', date, 'Error:', errorMessage);
         showBookingMessage(errorMessage, 'error');
         
         // Set HTML5 validation message for native browser validation
@@ -1058,13 +1073,18 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         // Focus on the date input to highlight the error
         dateInput.focus();
         
-        // Clear the date input AFTER showing the error
-        setTimeout(() => {
-            dateInput.value = '';
-            dateInput.setCustomValidity('');
-        }, 2000); // Keep the date visible for 2 seconds so user can see the error
+        // Reset button state
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
         
-        return;
+        // DON'T clear the date immediately - let user see what they entered
+        // Only clear custom validity after a delay
+        setTimeout(() => {
+            dateInput.setCustomValidity('');
+        }, 5000); // Clear validation message after 5 seconds
+        
+        return; // CRITICAL: Stop form submission
     }
     
     // Clear any custom validity if date is valid
@@ -1301,8 +1321,11 @@ document.getElementById('bookingForm').addEventListener('submit', async function
             showBookingMessage('✅ Appointment booked successfully! We have received your appointment request and will contact you shortly. (Note: Confirmation email could not be sent, but we have your booking details.)', 'success');
         });
         
-        // Reset form after successful booking
-        document.getElementById('bookingForm').reset();
+        // Reset form after successful booking (with delay to show message)
+        setTimeout(() => {
+            document.getElementById('bookingForm').reset();
+            // Clear the date min/max attributes will be reset by the date restriction code
+        }, 3000); // Wait 3 seconds before resetting so user can see success message
         
     }, function (error) {
         console.error('❌ Booking request FAILED...');
@@ -1327,18 +1350,48 @@ document.getElementById('bookingForm').addEventListener('submit', async function
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
         submitBtn.style.opacity = '1';
+    }).catch(function(error) {
+        // This catch handles any errors in the emailjs.send promise chain
+        console.error('❌ Error in emailjs.send promise chain:', error);
+        showBookingMessage('An error occurred while sending your booking request. Please try again or contact us directly.', 'error');
+        if (submitBtn) {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+        }
     });
-});
+    
+    } catch (error) {
+        // This catch handles any synchronous errors in the form submission handler
+        console.error('❌ Error in form submission handler:', error);
+        console.error('Error stack:', error.stack);
+        const formMessage = document.getElementById('bookingFormMessage');
+        if (formMessage) {
+            showBookingMessage('An unexpected error occurred: ' + (error.message || 'Unknown error') + '. Please try again or contact us directly.', 'error');
+        } else {
+            alert('An unexpected error occurred. Please try again or contact us directly.');
+        }
+        const submitBtn = document.querySelector('#bookingForm .submit-btn');
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '1';
+        }
+    }
+    }); // End of bookingForm.addEventListener
+}); // End of DOMContentLoaded
 
 // Function to show booking form messages
 function showBookingMessage(text, type) {
+    console.log('📢 showBookingMessage called:', text, 'Type:', type);
     const formMessage = document.getElementById('bookingFormMessage');
     
     if (!formMessage) {
-        console.error('Message element not found!');
+        console.error('❌ Message element not found! ID: bookingFormMessage');
         alert(text); // Fallback to alert if element not found
         return;
     }
+    
+    console.log('✅ Message element found, displaying message...');
     
     // Clear previous content
     formMessage.textContent = '';
@@ -1347,10 +1400,14 @@ function showBookingMessage(text, type) {
     // Set message content and type
     formMessage.textContent = text;
     formMessage.className = `form-message ${type}`;
+    
+    // Force visibility with inline styles
     formMessage.style.display = 'block';
     formMessage.style.visibility = 'visible';
     formMessage.style.opacity = '1';
     formMessage.style.minHeight = 'auto';
+    formMessage.style.padding = '12px 16px';
+    formMessage.style.marginTop = '1rem';
     
     // Force reflow to ensure visibility
     void formMessage.offsetHeight;
@@ -1358,7 +1415,9 @@ function showBookingMessage(text, type) {
     // Scroll to message immediately
     formMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     
-    console.log('📢 Booking message displayed:', text, 'Type:', type);
+    console.log('✅ Booking message displayed:', text, 'Type:', type);
+    console.log('Message element classes:', formMessage.className);
+    console.log('Message element styles:', window.getComputedStyle(formMessage).display);
     
     // Auto-hide error messages after 8 seconds (but keep success messages)
     if (type === 'error') {
