@@ -47,4 +47,7 @@ if %ERRORLEVEL% EQU 0 (
 
 pause
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes

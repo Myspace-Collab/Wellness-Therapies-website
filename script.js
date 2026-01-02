@@ -170,10 +170,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Wait a bit for config.js to load
-    setTimeout(function() {
+    // Wait for config.js to load - try multiple times if needed
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    function tryInitializeEmailJS() {
+        attempts++;
         const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
-        console.log('EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ')' : 'No');
+        console.log('Attempt ' + attempts + ': EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ', starts with: ' + emailjsKey.substring(0, 5) + '...)' : 'No');
         
         if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE' && emailjsKey.length > 0) {
             try {
@@ -185,10 +189,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.EMAILJS_INITIALIZED = false;
             }
         } else {
-            console.warn('⚠️ EmailJS public key not configured. Please create config.js from config.example.js and add your EmailJS public key.');
-            window.EMAILJS_INITIALIZED = false;
+            if (attempts < maxAttempts) {
+                // Try again after a short delay
+                console.log('⏳ Config.js not loaded yet, retrying in 200ms...');
+                setTimeout(tryInitializeEmailJS, 200);
+            } else {
+                console.error('❌ EmailJS public key not configured after ' + maxAttempts + ' attempts.');
+                console.error('Current EMAILJS_PUBLIC_KEY value:', window.EMAILJS_PUBLIC_KEY || 'undefined');
+                console.error('Please check that config.js exists and contains a valid EMAILJS_PUBLIC_KEY.');
+                window.EMAILJS_INITIALIZED = false;
+            }
         }
-    }, 100); // Small delay to ensure config.js is loaded
+    }
+    
+    // Start trying to initialize
+    setTimeout(tryInitializeEmailJS, 100);
 });
 
 // Function to send email notification
@@ -551,10 +566,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    // Wait a bit for config.js to load
-    setTimeout(function() {
+    // Wait for config.js to load - try multiple times if needed
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    function tryInitializeEmailJS() {
+        attempts++;
         const emailjsKey = window.EMAILJS_PUBLIC_KEY || '';
-        console.log('EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ')' : 'No');
+        console.log('Attempt ' + attempts + ': EmailJS Public Key found:', emailjsKey ? 'Yes (length: ' + emailjsKey.length + ', starts with: ' + emailjsKey.substring(0, 5) + '...)' : 'No');
         
         if (emailjsKey && emailjsKey !== 'YOUR_EMAILJS_PUBLIC_KEY_HERE' && emailjsKey.length > 0) {
             try {
@@ -566,10 +585,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.EMAILJS_INITIALIZED = false;
             }
         } else {
-            console.warn('⚠️ EmailJS public key not configured. Please create config.js from config.example.js and add your EmailJS public key.');
-            window.EMAILJS_INITIALIZED = false;
+            if (attempts < maxAttempts) {
+                // Try again after a short delay
+                console.log('⏳ Config.js not loaded yet, retrying in 200ms...');
+                setTimeout(tryInitializeEmailJS, 200);
+            } else {
+                console.error('❌ EmailJS public key not configured after ' + maxAttempts + ' attempts.');
+                console.error('Current EMAILJS_PUBLIC_KEY value:', window.EMAILJS_PUBLIC_KEY || 'undefined');
+                console.error('Please check that config.js exists and contains a valid EMAILJS_PUBLIC_KEY.');
+                window.EMAILJS_INITIALIZED = false;
+            }
         }
-    }, 100); // Small delay to ensure config.js is loaded
+    }
+    
+    // Start trying to initialize
+    setTimeout(tryInitializeEmailJS, 100);
 });
 
 // Function to send email notification

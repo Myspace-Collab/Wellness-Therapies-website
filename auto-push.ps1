@@ -49,4 +49,7 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
