@@ -536,6 +536,42 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    // Function to populate time slots
+    function populateTimeSlots() {
+        if (!bookingTimeSelect) return;
+        
+        const timeSlots = [
+            { value: '10:00', label: '10:00 AM' },
+            { value: '10:30', label: '10:30 AM' },
+            { value: '11:00', label: '11:00 AM' },
+            { value: '11:30', label: '11:30 AM' },
+            { value: '12:00', label: '12:00 PM' },
+            { value: '12:30', label: '12:30 PM' },
+            { value: '13:00', label: '1:00 PM' },
+            { value: '13:30', label: '1:30 PM' },
+            { value: '14:00', label: '2:00 PM' },
+            { value: '14:30', label: '2:30 PM' },
+            { value: '15:00', label: '3:00 PM' },
+            { value: '15:30', label: '3:30 PM' }
+        ];
+        
+        // Store current value
+        const currentValue = bookingTimeSelect.value;
+        
+        // Clear and repopulate
+        bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+        
+        timeSlots.forEach(slot => {
+            const option = document.createElement('option');
+            option.value = slot.value;
+            option.textContent = slot.label;
+            if (slot.value === currentValue) {
+                option.selected = true;
+            }
+            bookingTimeSelect.appendChild(option);
+        });
+    }
+    
     // CRITICAL: Function to get next available weekday (Monday-Friday)
     function getNextAvailableWeekday() {
         const today = new Date();
@@ -700,12 +736,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Clear validation error if valid
                         this.setCustomValidity('');
                         this.classList.remove('date-invalid');
+                        // Populate time slots when valid date is selected
+                        populateTimeSlots();
                     }
                 }, 10);
             } else {
                 // Clear error when date is cleared
                 this.setCustomValidity('');
                 this.classList.remove('date-invalid');
+                // Clear time select when date is cleared
+                if (bookingTimeSelect) {
+                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+                }
                 const formMessage = document.getElementById('bookingFormMessage');
                 if (formMessage && formMessage.classList.contains('error')) {
                     formMessage.textContent = '';
@@ -745,8 +787,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Validate immediately when value changes
                 enforceValidDate();
+                // If date is valid, populate time slots
+                if (isValidDate(bookingDateInput.value)) {
+                    populateTimeSlots();
+                }
             } else {
                 // Clear error message when date is cleared
+                if (bookingTimeSelect) {
+                    bookingTimeSelect.innerHTML = '<option value="">Select Time</option>';
+                }
                 const formMessage = document.getElementById('bookingFormMessage');
                 if (formMessage && formMessage.classList.contains('error')) {
                     formMessage.textContent = '';
