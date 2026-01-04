@@ -462,84 +462,6 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Form submission with improved validation and feedback
-document.getElementById('contactForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Get form elements
-    const formData = new FormData(this);
-    const name = this.querySelector('input[name="name"]').value.trim();
-    const email = this.querySelector('input[name="email"]').value.trim();
-    const therapy = this.querySelector('select[name="therapy"]').value;
-    const message = this.querySelector('textarea[name="message"]').value.trim();
-    const submitBtn = this.querySelector('.submit-btn');
-    const formMessage = document.getElementById('formMessage');
-    
-    // Clear previous messages
-    formMessage.textContent = '';
-    formMessage.className = 'form-message';
-    
-    // Enhanced validation
-    if (!name || !email || !therapy || !message) {
-        showMessage('Please fill in all fields.', 'error');
-        return;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        showMessage('Please enter a valid email address.', 'error');
-        return;
-    }
-    
-    // Name validation (at least 2 characters)
-    if (name.length < 2) {
-        showMessage('Please enter a valid name (at least 2 characters).', 'error');
-        return;
-    }
-    
-    // Message validation (at least 10 characters)
-    if (message.length < 10) {
-        showMessage('Please enter a more detailed message (at least 10 characters).', 'error');
-        return;
-    }
-    
-    // Show loading state
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Sending...';
-    submitBtn.disabled = true;
-    submitBtn.style.opacity = '0.7';
-    
-    // Simulate form submission (replace with actual email service)
-    setTimeout(() => {
-        // Here you would typically send the data to your backend or email service
-        // For now, we'll simulate a successful submission
-        
-        // Log form data (in production, this would be sent to your server)
-        console.log('Form submitted with data:', {
-            name: name,
-            email: email,
-            therapy: therapy,
-            message: message,
-            timestamp: new Date().toISOString()
-        });
-        
-        // Send email using EmailJS
-        console.log('About to call sendEmailNotification function...');
-        sendEmailNotification(name, email, therapy, message);
-        console.log('sendEmailNotification function called');
-        
-        // Reset form
-        this.reset();
-        
-        // Reset button
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-        submitBtn.style.opacity = '1';
-        
-    }, 2000);
-});
-
 // Function to show form messages
 function showMessage(text, type) {
     const formMessage = document.getElementById('formMessage');
@@ -603,74 +525,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Function to send email notification
-function sendEmailNotification(name, email, therapy, message) {
-    console.log('Attempting to send email with EmailJS...');
-    console.log('Service ID:', 'service_1u51w01');
-    console.log('Template ID:', 'template_zj4pg7k');
-    
-    // Check if emailjs is available
-    if (typeof emailjs === 'undefined') {
-        console.error('EmailJS is not loaded!');
-        showMessage('Email service not available. Please try again later.', 'error');
-        return;
-    }
-    
-    // Check if emailjs is initialized
-    if (!emailjs.init) {
-        console.error('EmailJS is not properly initialized!');
-        showMessage('Email service not properly initialized. Please refresh the page.', 'error');
-        return;
-    }
-    
-    console.log('EmailJS is available and ready to send...');
-    
-    // Send auto-reply to customer first
-    console.log('=== EMAIL SEND DEBUG ===');
-    console.log('Sending auto-reply to customer:', email);
-    
-    emailjs.send("service_1u51w01", "template_xz10eyk", {
-        from_name: "Wellness Therapies",
-        from_email: "therapieswellness@gmail.com",
-        to_name: name,
-        to_email: email,
-        name: name,
-        email: email,
-        therapy: therapy,
-        message: message,
-        reply_to: "therapieswellness@gmail.com"
-    }).then(function (response) {
-        console.log('✅ Auto-reply sent successfully to customer!');
-        console.log('Response status:', response.status);
-        
-        // Send notification to wellness therapies
-        console.log('Sending notification to wellness therapies');
-        emailjs.send("service_1u51w01", "template_zj4pg7k", {
-            from_name: name,
-            from_email: email,
-            to_name: "Wellness Therapies",
-            to_email: "therapieswellness@gmail.com",
-            name: name,
-            email: email,
-            therapy: therapy,
-            message: "CONTACT FORM SUBMISSION:\n\nName: " + name + "\nEmail: " + email + "\nTherapy Interest: " + therapy + "\nMessage: " + message + "\n\nReply to: " + email,
-            title: "New Contact Form Submission",
-            type: "contact",
-            reply_to: email
-        }).then(function (response) {
-            console.log('✅ Notification sent successfully to wellness therapies!');
-            console.log('Response status:', response.status);
-            showMessage('Thank you for your message! We have sent you a confirmation email and will get back to you soon.', 'success');
-        }, function (error) {
-            console.log('❌ Notification failed:', error);
-            showMessage('Thank you for your message! We will get back to you soon.', 'success');
-        });
-        
-    }, function (error) {
-        console.log('❌ Auto-reply FAILED...', error);
-        console.log('Error details:', error);
-        showMessage('Sorry, there was an error sending your message. Please try again or contact us directly.', 'error');
-    });
-
 // Booking Form Functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Set minimum date to today and restrict to weekdays only
@@ -1649,7 +1503,6 @@ function showBookingMessage(text, type) {
     //         message: message
     //     })
     // });
-}
 
 // Intersection Observer for animations
 const observerOptions = {
