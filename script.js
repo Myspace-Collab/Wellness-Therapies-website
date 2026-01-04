@@ -1662,4 +1662,101 @@ window.addEventListener('load', () => {
     document.body.classList.add('loaded');
 });
 
-// Duplicate CSS block removed - already defined above
+// Newsletter Signup Functionality (Using FormSubmit - Unlimited Submissions)
+document.addEventListener('DOMContentLoaded', function() {
+    const newsletterForm = document.getElementById('newsletterForm');
+    const newsletterEmail = document.getElementById('newsletterEmail');
+    const newsletterMessage = document.getElementById('newsletterMessage');
+    
+    if (!newsletterForm) return;
+    
+    // Set the redirect URL to current page (to show success message)
+    const nextUrlInput = newsletterForm.querySelector('input[name="_next"]');
+    if (nextUrlInput) {
+        nextUrlInput.value = window.location.href + '#newsletter-success';
+    }
+    
+    newsletterForm.addEventListener('submit', function(e) {
+        const email = newsletterEmail.value.trim();
+        const submitBtn = newsletterForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Clear previous messages
+        newsletterMessage.textContent = '';
+        newsletterMessage.className = 'newsletter-message';
+        
+        // Email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            e.preventDefault();
+            newsletterMessage.textContent = 'Please enter a valid email address.';
+            newsletterMessage.className = 'newsletter-message error';
+            return;
+        }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subscribing...';
+        
+        // Generate unsubscribe token and URL
+        const unsubscribeToken = btoa(email + '|' + Date.now()).replace(/[^a-zA-Z0-9]/g, '');
+        const unsubscribeUrl = window.location.origin + '/unsubscribe.html?token=' + unsubscribeToken + '&email=' + encodeURIComponent(email);
+        
+        // Add unsubscribe info as hidden field (FormSubmit will include it in the email)
+        let unsubscribeField = newsletterForm.querySelector('input[name="_unsubscribe"]');
+        if (!unsubscribeField) {
+            unsubscribeField = document.createElement('input');
+            unsubscribeField.type = 'hidden';
+            unsubscribeField.name = '_unsubscribe';
+            newsletterForm.appendChild(unsubscribeField);
+        }
+        unsubscribeField.value = `Unsubscribe: ${unsubscribeUrl}`;
+        
+        // Optionally send welcome email via EmailJS (if you want to keep that feature)
+        // This is optional - FormSubmit will notify you, but won't send welcome email to subscriber
+        if (window.EMAILJS_INITIALIZED && typeof emailjs !== 'undefined') {
+            // Send welcome email to subscriber (optional)
+            emailjs.send("service_1u51w01", "template_xz10eyk", {
+                from_name: "Wellness Therapies",
+                from_email: "therapieswellness@gmail.com",
+                to_name: email.split('@')[0],
+                to_email: email,
+                name: email.split('@')[0],
+                email: email,
+                message: `Thank you for subscribing to Wellness Therapies newsletter!\n\nYou will now receive:\n- Monthly wellness tips\n- Special offers and promotions\n- Updates on new therapies\n- Self-care resources\n\nIf you no longer wish to receive these emails, you can unsubscribe at any time by clicking the link below:\n\n${unsubscribeUrl}\n\nWe respect your privacy and you can unsubscribe at any time.\n\nBest regards,\nThe Wellness Therapies Team`,
+                type: "newsletter_subscription",
+                reply_to: "therapieswellness@gmail.com"
+            }).catch(function(error) {
+                console.log('⚠️ Welcome email not sent (optional):', error);
+            });
+        }
+        
+        // FormSubmit will handle the submission
+        // Show success message after a short delay (FormSubmit redirects, but we handle it client-side)
+        setTimeout(() => {
+            // Check if we're still on the page (FormSubmit might redirect)
+            if (document.getElementById('newsletterForm')) {
+                newsletterMessage.textContent = 'Thank you for subscribing! You will receive a confirmation email shortly.';
+                newsletterMessage.className = 'newsletter-message success';
+                newsletterForm.reset();
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                // Clear message after 5 seconds
+                setTimeout(() => {
+                    newsletterMessage.textContent = '';
+                    newsletterMessage.className = 'newsletter-message';
+                }, 5000);
+            }
+        }, 1000);
+    });
+    
+    // Handle success message if redirected back with hash
+    if (window.location.hash === '#newsletter-success') {
+        newsletterMessage.textContent = 'Thank you for subscribing! Check your email for confirmation.';
+        newsletterMessage.className = 'newsletter-message success';
+        window.location.hash = ''; // Remove hash from URL
+    }
+});

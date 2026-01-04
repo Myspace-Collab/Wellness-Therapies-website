@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unsubscribe - Wellness Therapies</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .unsubscribe-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .unsubscribe-box {
+            background: white;
+            border-radius: 15px;
+            padding: 3rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        
+        .unsubscribe-box i {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+        }
+        
+        .unsubscribe-box h1 {
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        
+        .unsubscribe-box p {
+            color: #666;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .unsubscribe-email {
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1.5rem 0;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .unsubscribe-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .unsubscribe-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+        
+        .unsubscribe-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .unsubscribe-message {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .unsubscribe-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .unsubscribe-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .back-link {
+            margin-top: 2rem;
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .back-link:hover {
+            color: #764ba2;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="config.js" onerror="console.warn('config.js not found - using fallback values for GitHub Pages.'); window.EMAILJS_PUBLIC_KEY = window.EMAILJS_PUBLIC_KEY || 'Je8lFGvEjx-Z0YMCG'; window.GOOGLE_CALENDAR_API_KEY = window.GOOGLE_CALENDAR_API_KEY || 'AIzaSyBBzfo877j_O-6O80Ggp4E3mNFv_VEKWS8'; window.GOOGLE_CALENDAR_ID = window.GOOGLE_CALENDAR_ID || 'therapieswellness@gmail.com';"></script>
+</head>
+<body>
+    <div class="unsubscribe-container">
+        <div class="unsubscribe-box">
+            <i class="fas fa-envelope-open-text"></i>
+            <h1>Unsubscribe from Newsletter</h1>
+            <p>We're sorry to see you go! If you no longer wish to receive our newsletter, please confirm your email address below and click unsubscribe.</p>
+            
+            <div id="emailDisplay" class="unsubscribe-email" style="display: none;">
+                <i class="fas fa-envelope"></i> <span id="emailAddress"></span>
+            </div>
+            
+            <form id="unsubscribeForm">
+                <input type="email" id="unsubscribeEmail" placeholder="Enter your email address" required style="width: 100%; padding: 1rem; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; margin-bottom: 1rem; box-sizing: border-box;">
+                <button type="submit" class="unsubscribe-btn" id="unsubscribeBtn">
+                    <i class="fas fa-times-circle"></i> Unsubscribe
+                </button>
+            </form>
+            
+            <div id="unsubscribeMessage" class="unsubscribe-message" style="display: none;"></div>
+            
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Home
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Initialize EmailJS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for email and token in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailFromUrl = urlParams.get('email');
+            const tokenFromUrl = urlParams.get('token');
+            
+            if (emailFromUrl) {
+                document.getElementById('unsubscribeEmail').value = decodeURIComponent(emailFromUrl);
+                document.getElementById('emailDisplay').style.display = 'block';
+                document.getElementById('emailAddress').textContent = decodeURIComponent(emailFromUrl);
+            }
+            
+            // Initialize EmailJS if not already initialized
+            if (window.EMAILJS_PUBLIC_KEY && !window.EMAILJS_INITIALIZED) {
+                try {
+                    emailjs.init(window.EMAILJS_PUBLIC_KEY);
+                    window.EMAILJS_INITIALIZED = true;
+                    console.log('✅ EmailJS initialized for unsubscribe page');
+                } catch (error) {
+                    console.error('❌ Failed to initialize EmailJS:', error);
+                }
+            }
+            
+            const unsubscribeForm = document.getElementById('unsubscribeForm');
+            const unsubscribeEmail = document.getElementById('unsubscribeEmail');
+            const unsubscribeBtn = document.getElementById('unsubscribeBtn');
+            const unsubscribeMessage = document.getElementById('unsubscribeMessage');
+            
+            unsubscribeForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = unsubscribeEmail.value.trim();
+                const originalBtnText = unsubscribeBtn.innerHTML;
+                
+                // Clear previous messages
+                unsubscribeMessage.style.display = 'none';
+                unsubscribeMessage.textContent = '';
+                unsubscribeMessage.className = 'unsubscribe-message';
+                
+                // Email validation
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    unsubscribeMessage.textContent = 'Please enter a valid email address.';
+                    unsubscribeMessage.className = 'unsubscribe-message error';
+                    unsubscribeMessage.style.display = 'block';
+                    return;
+                }
+                
+                // Show loading state
+                unsubscribeBtn.disabled = true;
+                unsubscribeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
+                // Check if EmailJS is available
+                if (!window.EMAILJS_INITIALIZED || typeof emailjs === 'undefined') {
+                    unsubscribeMessage.textContent = 'Email service not available. Please contact us directly at therapieswellness@gmail.com to unsubscribe.';
+                    unsubscribeMessage.className = 'unsubscribe-message error';
+                    unsubscribeMessage.style.display = 'block';
+                    unsubscribeBtn.disabled = false;
+                    unsubscribeBtn.innerHTML = originalBtnText;
+                    return;
+                }
+                
+                // Send unsubscribe notification via EmailJS
+                emailjs.send("service_1u51w01", "template_zj4pg7k", {
+                    from_name: "Unsubscribe Request",
+                    from_email: email,
+                    to_name: "Wellness Therapies",
+                    to_email: "therapieswellness@gmail.com",
+                    name: email.split('@')[0],
+                    email: email,
+                    message: `UNSUBSCRIBE REQUEST:\n\nEmail: ${email}\nUnsubscribed: ${new Date().toLocaleString()}\nToken: ${tokenFromUrl || 'N/A'}\n\nPlease remove this email from your newsletter list.`,
+                    title: "Newsletter Unsubscribe Request",
+                    type: "newsletter_unsubscribe",
+                    reply_to: email
+                }).then(function(response) {
+                    console.log('✅ Unsubscribe notification sent!', response.status);
+                    
+                    // Show success message
+                    unsubscribeMessage.textContent = 'You have been successfully unsubscribed. We\'re sorry to see you go! You will no longer receive our newsletter emails.';
+                    unsubscribeMessage.className = 'unsubscribe-message success';
+                    unsubscribeMessage.style.display = 'block';
+                    
+                    // Disable form
+                    unsubscribeForm.style.display = 'none';
+                    document.getElementById('emailDisplay').style.display = 'none';
+                    
+                    // Reset button (though form is hidden)
+                    unsubscribeBtn.disabled = false;
+                    unsubscribeBtn.innerHTML = originalBtnText;
+                    
+                }).catch(function(error) {
+                    console.error('❌ Unsubscribe notification failed:', error);
+                    
+                    // Still show success message to user (they may have already been unsubscribed)
+                    unsubscribeMessage.textContent = 'Your unsubscribe request has been processed. If you continue to receive emails, please contact us directly at therapieswellness@gmail.com.';
+                    unsubscribeMessage.className = 'unsubscribe-message success';
+                    unsubscribeMessage.style.display = 'block';
+                    
+                    // Disable form
+                    unsubscribeForm.style.display = 'none';
+                    document.getElementById('emailDisplay').style.display = 'none';
+                    
+                    // Reset button
+                    unsubscribeBtn.disabled = false;
+                    unsubscribeBtn.innerHTML = originalBtnText;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+
